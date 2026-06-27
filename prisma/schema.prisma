@@ -4,43 +4,47 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Lojista {
-  id           String    @id @default(cuid())
-  nome         String
-  email        String    @unique
-  senha        String
-  slug         String    @unique
-  nomeNegocio  String
-  selosParaGanhar Int    @default(10)
-  recompensa   String    @default("1 item grátis")
-  ativo        Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  cartoes      Cartao[]
+  id              String   @id @default(cuid())
+  nome            String
+  email           String   @unique
+  senha           String
+  slug            String   @unique
+  nomeNegocio     String
+  tema            String   @default("generico")
+  selosParaGanhar Int      @default(10)
+  recompensa      String   @default("1 item grátis")
+  ticketMedio     Float    @default(0)
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  resetToken      String?
+  resetTokenExp   DateTime?
+  cartoes         Cartao[]
 }
 
 model Cliente {
   id        String   @id @default(cuid())
   nome      String
-  telefone  String
+  email     String?  @unique
+  telefone  String?
   createdAt DateTime @default(now())
   cartoes   Cartao[]
-
-  @@unique([telefone])
 }
 
 model Cartao {
-  id         String   @id @default(cuid())
-  lojistaId  String
-  clienteId  String
-  selos      Int      @default(0)
-  resgates   Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  lojista    Lojista  @relation(fields: [lojistaId], references: [id])
-  cliente    Cliente  @relation(fields: [clienteId], references: [id])
+  id            String   @id @default(cuid())
+  lojistaId     String
+  clienteId     String
+  token         String   @unique
+  selos         Int      @default(0)
+  totalCarimbos Int      @default(0)
+  resgates      Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lojista       Lojista  @relation(fields: [lojistaId], references: [id])
+  cliente       Cliente  @relation(fields: [clienteId], references: [id])
 
   @@unique([lojistaId, clienteId])
 }
