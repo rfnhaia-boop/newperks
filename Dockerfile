@@ -9,7 +9,9 @@
 FROM node:24-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+# npm install (em vez de npm ci) tolera o lockfile gerado no Windows,
+# que carrega binários opcionais de plataforma diferentes do Linux.
+RUN npm install --no-audit --no-fund
 
 # 2) Build
 FROM node:24-alpine AS builder
