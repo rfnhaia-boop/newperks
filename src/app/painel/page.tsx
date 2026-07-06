@@ -8,6 +8,24 @@ function moeda(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+/* Reusable glass card wrapper */
+function Glass({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div
+      className={`relative overflow-hidden rounded-2xl border border-white/10 ${className}`}
+      style={{
+        background: "rgba(255, 255, 255, 0.04)",
+        backdropFilter: "blur(20px) saturate(150%)",
+        WebkitBackdropFilter: "blur(20px) saturate(150%)",
+      }}
+    >
+      {/* Top highlight line */}
+      <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+      {children}
+    </div>
+  );
+}
+
 export default async function PainelPage() {
   const session = await auth();
   const lojista = await prisma.lojista.findUnique({
@@ -62,7 +80,7 @@ export default async function PainelPage() {
         />
 
         <div className="flex flex-col gap-4">
-          <div className="rounded-2xl border border-violet-500/40 bg-gradient-to-br from-violet-600/25 to-fuchsia-600/10 p-5">
+          <Glass className="border-violet-500/20 p-5">
             <p className="text-xs uppercase tracking-wider text-violet-300/80">
               Faturamento estimado
             </p>
@@ -72,23 +90,23 @@ export default async function PainelPage() {
                 ? `${totalCarimbos} compras × ${moeda(ticket)}`
                 : "defina o ticket médio em Configurar"}
             </p>
-          </div>
+          </Glass>
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
+            <Glass className="p-5">
               <p className="text-xs uppercase tracking-wider text-zinc-400">Clientes</p>
               <p className="mt-1 text-3xl font-bold">{cartoes.length}</p>
-            </div>
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
+            </Glass>
+            <Glass className="p-5">
               <p className="text-xs uppercase tracking-wider text-zinc-400">Carimbos dados</p>
               <p className="mt-1 text-3xl font-bold">{totalCarimbos}</p>
-            </div>
+            </Glass>
           </div>
         </div>
       </div>
 
       {/* Linha 2 — cartões em uso / completos */}
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
+        <Glass className="p-5">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-zinc-300">Cartões em uso</p>
             <span className="text-2xl font-bold text-sky-400">{emUso.length}</span>
@@ -96,17 +114,17 @@ export default async function PainelPage() {
           <p className="mt-1 text-xs text-zinc-500">
             Clientes juntando selos agora
           </p>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-zinc-800">
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/5">
             <div
-              className="h-full rounded-full bg-sky-500"
+              className="h-full rounded-full bg-sky-500/80"
               style={{
                 width: `${cartoes.length ? (emUso.length / cartoes.length) * 100 : 0}%`,
               }}
             />
           </div>
-        </div>
+        </Glass>
 
-        <div className="rounded-2xl border border-emerald-700/40 bg-emerald-900/10 p-5">
+        <Glass className="border-emerald-500/15 p-5">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-zinc-300">Cartões completos</p>
             <span className="text-2xl font-bold text-emerald-400">{completos.length}</span>
@@ -115,12 +133,12 @@ export default async function PainelPage() {
           <CartoesCompletos
             completos={completos.map((c) => ({ clienteId: c.clienteId, nome: c.cliente.nome }))}
           />
-        </div>
+        </Glass>
       </div>
 
       {/* Linha 3 — gráfico + recompensas */}
       <div className="grid gap-4 md:grid-cols-[1fr_280px]">
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
+        <Glass className="p-5">
           <p className="mb-4 text-sm font-semibold text-zinc-300">
             🏆 Clientes mais ativos
           </p>
@@ -130,13 +148,13 @@ export default async function PainelPage() {
             sufixo=" compras"
             vazio="Os clientes mais fiéis aparecem aqui"
           />
-        </div>
+        </Glass>
 
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
+        <Glass className="p-5">
           <p className="text-sm font-semibold text-zinc-300">Recompensas entregues</p>
           <p className="mt-2 text-5xl font-extrabold text-white">{totalResgates}</p>
           <p className="mt-1 text-xs text-zinc-500">desde o início</p>
-        </div>
+        </Glass>
       </div>
     </div>
   );

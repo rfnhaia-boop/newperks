@@ -34,17 +34,27 @@ model Cliente {
 }
 
 model Cartao {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   lojistaId     String
   clienteId     String
-  token         String   @unique
-  selos         Int      @default(0)
-  totalCarimbos Int      @default(0)
-  resgates      Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  lojista       Lojista  @relation(fields: [lojistaId], references: [id])
-  cliente       Cliente  @relation(fields: [clienteId], references: [id])
+  token         String    @unique
+  selos         Int       @default(0)
+  totalCarimbos Int       @default(0)
+  resgates      Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lojista       Lojista   @relation(fields: [lojistaId], references: [id])
+  cliente       Cliente   @relation(fields: [clienteId], references: [id])
+  carimbos      Carimbo[]
 
   @@unique([lojistaId, clienteId])
+}
+
+model Carimbo {
+  id        String   @id @default(cuid())
+  cartaoId  String
+  descricao String?
+  valor     Float?
+  createdAt DateTime @default(now())
+  cartao    Cartao   @relation(fields: [cartaoId], references: [id])
 }

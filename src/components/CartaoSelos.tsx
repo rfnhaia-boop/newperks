@@ -28,41 +28,55 @@ export default function CartaoSelos({
   const { Icone } = t;
   const completo = selos >= selosParaGanhar;
   const faltam = Math.max(0, selosParaGanhar - selos);
+  const progresso = Math.min((selos / selosParaGanhar) * 100, 100);
 
-  // Calcula colunas: 5 por linha fica bom para 10; ajusta para outros totais
   const colunas = selosParaGanhar % 5 === 0 ? 5 : selosParaGanhar % 4 === 0 ? 4 : 5;
 
   return (
     <div
-      className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${t.gradiente} ${
-        compacto ? "p-4" : "p-6 sm:p-8"
-      } shadow-2xl`}
+      className={`relative overflow-hidden rounded-[2rem] ${
+        compacto ? "p-5" : "px-7 pt-7 pb-6"
+      } shadow-[0_8px_32px_rgba(0,0,0,0.25)] border border-white/20`}
+      style={{
+        background: "rgba(255, 255, 255, 0.08)",
+        backdropFilter: "blur(24px) saturate(180%)",
+        WebkitBackdropFilter: "blur(24px) saturate(180%)",
+      }}
     >
-      {/* Brilho decorativo */}
-      <div className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-black/20 blur-3xl" />
+      {/* Glass reflections */}
+      <div className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full bg-white/5 blur-3xl" />
+      <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
-      {/* Cabeçalho */}
-      <div className="relative flex items-start justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-white/60">
-            Cartão Fidelidade
-          </p>
-          <h2 className={`font-bold text-white ${compacto ? "text-lg" : "text-2xl"}`}>
+      {/* Header */}
+      <div className="relative flex items-center justify-between">
+        <div className="min-w-0 flex-1">
+          {nomeCliente && (
+            <p className="text-xs text-white/60 font-medium truncate">
+              {nomeCliente}
+            </p>
+          )}
+          <h2 className={`font-bold text-white truncate ${compacto ? "text-lg" : "text-xl"}`}>
             {nomeNegocio}
           </h2>
-          {nomeCliente && (
-            <p className="mt-0.5 text-sm text-white/70">{nomeCliente}</p>
-          )}
         </div>
-        <span className={`${compacto ? "text-3xl" : "text-4xl"} drop-shadow-lg`}>
+        <span className={`${compacto ? "text-3xl" : "text-4xl"} ml-3 flex-shrink-0`}>
           {t.emoji}
         </span>
       </div>
 
-      {/* Selos */}
+      {/* Progress bar */}
+      {!compacto && (
+        <div className="relative mt-5 h-1.5 rounded-full bg-black/20 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-white/80 transition-all duration-700 ease-out"
+            style={{ width: `${progresso}%` }}
+          />
+        </div>
+      )}
+
+      {/* Stamps */}
       <div
-        className={`relative mt-6 grid justify-items-center gap-3`}
+        className="relative mt-5 grid justify-items-center gap-2.5"
         style={{ gridTemplateColumns: `repeat(${colunas}, minmax(0, 1fr))` }}
       >
         {Array.from({ length: selosParaGanhar }).map((_, i) => {
@@ -70,16 +84,16 @@ export default function CartaoSelos({
           return (
             <div
               key={i}
-              className={`flex aspect-square w-full max-w-[56px] items-center justify-center rounded-full transition-all duration-300 ${
+              className={`flex aspect-square w-full max-w-[48px] items-center justify-center rounded-full transition-all duration-300 ${
                 ativo
-                  ? `scale-100 ${t.seloBg} shadow-lg ring-2 ring-white/40`
-                  : "scale-95 border-2 border-dashed border-white/25 bg-black/10"
+                  ? "bg-white/90 shadow-lg scale-100"
+                  : "bg-white/10 scale-95"
               }`}
             >
               {ativo ? (
-                <Icone className="h-1/2 w-1/2 text-white" />
+                <Icone className="h-[45%] w-[45%] text-zinc-800" />
               ) : (
-                <span className="text-xs font-semibold text-white/40">
+                <span className="text-[10px] font-bold text-white/25">
                   {i + 1}
                 </span>
               )}
@@ -88,34 +102,29 @@ export default function CartaoSelos({
         })}
       </div>
 
-      {/* Rodapé / status */}
-      <div className="relative mt-6 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-white/80">Recompensa</p>
-          <p className="text-base font-bold text-white">{recompensa}</p>
+      {/* Footer */}
+      <div className="relative mt-5 flex items-end justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] uppercase tracking-widest text-white/45 font-semibold">
+            Recompensa
+          </p>
+          <p className="text-sm font-bold text-white truncate">{recompensa}</p>
         </div>
         {completo ? (
-          <span className="animate-pulse rounded-full bg-white px-4 py-2 text-sm font-extrabold text-zinc-900 shadow-lg">
-            🎉 COMPLETO!
+          <span className="rounded-full bg-white px-4 py-1.5 text-xs font-extrabold text-zinc-900 shadow-lg whitespace-nowrap">
+            Completo! 🎉
           </span>
         ) : (
-          <div className="text-right">
-            <p className="text-2xl font-extrabold text-white">
-              {selos}
-              <span className="text-base font-medium text-white/60">
-                /{selosParaGanhar}
-              </span>
-            </p>
-            <p className="text-xs text-white/60">
-              {faltam === 1 ? "falta 1 selo" : `faltam ${faltam} selos`}
-            </p>
-          </div>
+          <p className="text-right whitespace-nowrap">
+            <span className="text-xl font-extrabold text-white">{selos}</span>
+            <span className="text-sm text-white/50">/{selosParaGanhar}</span>
+          </p>
         )}
       </div>
 
       {resgates > 0 && (
-        <p className="relative mt-3 text-xs text-white/50">
-          ⭐ {resgates} {resgates === 1 ? "recompensa resgatada" : "recompensas resgatadas"}
+        <p className="relative mt-3 text-[10px] text-white/40 font-medium">
+          ⭐ {resgates} {resgates === 1 ? "resgate" : "resgates"}
         </p>
       )}
     </div>

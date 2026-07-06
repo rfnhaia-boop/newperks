@@ -38,14 +38,14 @@ function LoginForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+      <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-white/10 p-6" style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)' }}>
         <div>
           <label className="mb-1 block text-sm text-zinc-400">Email</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white focus:outline-none focus:border-violet-500"
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-white focus:outline-none focus:border-violet-500/50 focus:bg-white/10 transition"
             required
           />
         </div>
@@ -55,7 +55,7 @@ function LoginForm() {
             type="password"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white focus:outline-none focus:border-violet-500"
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-white focus:outline-none focus:border-violet-500/50 focus:bg-white/10 transition"
             required
           />
         </div>
@@ -84,7 +84,10 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-zinc-950 p-4 overflow-hidden">
+      {/* Ambient glows */}
+      <div className="pointer-events-none absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-violet-600/10 blur-[150px]" />
+      <div className="pointer-events-none absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-fuchsia-600/8 blur-[150px]" />
       <Suspense>
         <LoginForm />
       </Suspense>

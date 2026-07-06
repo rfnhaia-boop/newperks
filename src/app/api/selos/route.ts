@@ -3,13 +3,11 @@ import { randomBytes } from "crypto";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-// Carimba (+1) ou resgata o cartão do cliente.
-// body: { clienteId, acao: "carimbar" | "resgatar" }
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
-  const { clienteId, acao = "carimbar" } = await req.json();
+  const { clienteId, acao = "carimbar", descricao, valor } = await req.json();
   if (!clienteId) return NextResponse.json({ error: "clienteId obrigatório" }, { status: 400 });
 
   const lojista = await prisma.lojista.findUnique({ where: { id: session.user.id } });
@@ -45,11 +43,20 @@ export async function POST(req: NextRequest) {
   const novosSelos = cartao.selos + 1;
   const completou = novosSelos >= lojista.selosParaGanhar;
 
-  const atualizado = await prisma.cartao.update({
-    where: { id: cartao.id },
-    data: { selos: novosSelos, totalCarimbos: cartao.totalCarimbos + 1 },
-    include: { cliente: true },
-  });
+  const [atualizado] = await prisma.$transaction([
+    prisma.cartao.update({
+      where: { id: cartao.id },
+      data: { selos: novosSelos, totalCarimbos: cartao.totalCarimbos + 1 },
+      include: { cliente: true },
+    }),
+    prisma.carimbo.create({
+      data: {
+        cartaoId: cartao.id,
+        descricao: descricao?.trim() || null,
+        valor: valor ? parseFloat(valor) : null,
+      },
+    }),
+  ]);
 
   return NextResponse.json({ cartao: atualizado, completou, recompensa: lojista.recompensa });
 }

@@ -63,7 +63,7 @@ export default function ConfigForm({ inicial }: { inicial: Config }) {
               key={t.id}
               type="button"
               onClick={() => setCfg({ ...cfg, tema: t.id })}
-              className={`flex flex-col items-center gap-1 rounded-xl border-2 bg-gradient-to-br p-4 transition ${t.gradiente} ${
+              className={`flex flex-col items-center gap-1 rounded-xl border-2 p-4 transition backdrop-blur-md bg-gradient-to-br ${t.gradiente} ${
                 cfg.tema === t.id
                   ? "border-white ring-2 ring-white/50"
                   : "border-transparent opacity-70 hover:opacity-100"
@@ -85,7 +85,7 @@ export default function ConfigForm({ inicial }: { inicial: Config }) {
           type="text"
           value={cfg.nomeNegocio}
           onChange={(e) => setCfg({ ...cfg, nomeNegocio: e.target.value })}
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-violet-500"
+          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-white outline-none backdrop-blur-md transition focus:border-violet-500/50 focus:bg-white/10"
         />
       </div>
 
@@ -135,7 +135,7 @@ export default function ConfigForm({ inicial }: { inicial: Config }) {
           value={cfg.ticketMedio || ""}
           onChange={(e) => setCfg({ ...cfg, ticketMedio: Number(e.target.value) })}
           placeholder="Ex: 25.00"
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-violet-500"
+          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-white outline-none backdrop-blur-md transition focus:border-violet-500/50 focus:bg-white/10"
         />
         <p className="mt-1 text-xs text-zinc-500">
           Usado pra estimar seu faturamento no painel (carimbos × ticket médio).

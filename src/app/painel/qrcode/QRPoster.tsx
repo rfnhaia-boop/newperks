@@ -46,7 +46,12 @@ export default function QRPoster({
       <div
         ref={posterRef}
         id="poster"
-        className={`mx-auto flex max-w-sm flex-col items-center gap-5 rounded-3xl bg-gradient-to-br ${t.gradiente} p-8 text-center shadow-2xl`}
+        className="mx-auto flex max-w-sm flex-col items-center gap-5 rounded-3xl border border-white/15 p-8 text-center shadow-2xl"
+        style={{
+          background: "rgba(255, 255, 255, 0.06)",
+          backdropFilter: "blur(24px) saturate(180%)",
+          WebkitBackdropFilter: "blur(24px) saturate(180%)",
+        }}
       >
         <span className="text-5xl">{t.emoji}</span>
         <div>
@@ -79,13 +84,13 @@ export default function QRPoster({
       <div className="no-print flex justify-center gap-3">
         <button
           onClick={imprimir}
-          className="rounded-lg bg-violet-600 px-5 py-2.5 font-semibold text-white transition hover:bg-violet-500"
+          className="rounded-xl bg-violet-600 px-5 py-2.5 font-semibold text-white transition hover:bg-violet-500"
         >
           🖨️ Imprimir
         </button>
         <button
           onClick={baixar}
-          className="rounded-lg border border-zinc-700 px-5 py-2.5 font-semibold text-zinc-200 transition hover:bg-zinc-800"
+          className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md px-5 py-2.5 font-semibold text-zinc-200 transition hover:bg-white/10"
         >
           ⬇️ Baixar QR
         </button>

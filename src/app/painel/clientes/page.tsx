@@ -11,7 +11,7 @@ export default async function ClientesPage() {
 
   const cartoes = await prisma.cartao.findMany({
     where: { lojistaId: session!.user!.id },
-    include: { cliente: true },
+    include: { cliente: true, carimbos: { orderBy: { createdAt: "desc" }, take: 5 } },
     orderBy: { updatedAt: "desc" },
   });
 

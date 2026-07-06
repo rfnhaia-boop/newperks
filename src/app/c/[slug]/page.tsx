@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { getTema } from "@/lib/themes";
+import BackgroundFidelix from "@/components/BackgroundFidelix";
 
 type Lojista = {
   nomeNegocio: string;
@@ -86,72 +87,100 @@ export default function EntradaQRPage({
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-b ${tema.gradiente} bg-fixed px-4 py-10`}>
-      <div className="mx-auto w-full max-w-md">
-        <div className="mb-6 text-center">
-          <span className="text-5xl drop-shadow-lg">{tema.emoji}</span>
-          <h1 className="mt-2 text-2xl font-bold text-white drop-shadow">
+    <div className="relative min-h-screen px-4 py-16 flex items-center justify-center">
+      {/* Dynamic themed background with floating 3D elements */}
+      <BackgroundFidelix temaId={lojista?.tema} />
+      
+      <div className="relative w-full max-w-md z-10">
+        <div className="mb-8 text-center">
+          <div className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-white/10 shadow-inner backdrop-blur-md border border-white/20 mb-3 transform hover:rotate-6 transition-transform duration-300">
+            <span className="text-4xl drop-shadow-md">{tema.emoji}</span>
+          </div>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight drop-shadow-sm">
             {lojista?.nomeNegocio}
           </h1>
         </div>
 
         {estado === "form" && (
-          <div className="rounded-3xl bg-white/10 p-6 backdrop-blur-md ring-1 ring-white/20">
-            <h2 className="text-lg font-bold text-white">Bem-vindo! 👋</h2>
-            <p className="mt-1 text-sm text-white/70">
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-8 shadow-[0_24px_50px_-12px_rgba(0,0,0,0.5)] backdrop-blur-2xl transition-all duration-300 hover:border-white/15">
+            {/* Glow inner line */}
+            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            
+            <h2 className="text-xl font-bold text-white tracking-tight">Bem-vindo! 👋</h2>
+            <p className="mt-1.5 text-sm text-white/70 leading-relaxed">
               Cadastre-se para juntar selos e ganhar:{" "}
-              <strong>{lojista?.recompensa}</strong>
+              <strong className="text-white font-semibold underline decoration-white/30 underline-offset-2">
+                {lojista?.recompensa}
+              </strong>
             </p>
-            <form onSubmit={handleSubmit} className="mt-5 space-y-3">
-              <input
-                type="text"
-                placeholder="Seu nome"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                className="w-full rounded-xl border border-white/20 bg-white/15 px-4 py-3 text-white placeholder-white/50 outline-none focus:border-white/50"
-                required
-              />
-              <input
-                type="email"
-                placeholder="Seu melhor email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-white/20 bg-white/15 px-4 py-3 text-white placeholder-white/50 outline-none focus:border-white/50"
-                required
-              />
+            
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              <div className="space-y-1">
+                <input
+                  type="text"
+                  placeholder="Seu nome"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-white placeholder-white/40 outline-none transition-all duration-300 focus:border-white/30 focus:bg-white/10 focus:ring-4 focus:ring-white/5"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <input
+                  type="email"
+                  placeholder="Seu melhor email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-white placeholder-white/40 outline-none transition-all duration-300 focus:border-white/30 focus:bg-white/10 focus:ring-4 focus:ring-white/5"
+                  required
+                />
+              </div>
               <button
                 type="submit"
                 disabled={enviando}
-                className="w-full rounded-xl bg-white py-3 font-bold text-zinc-900 transition hover:bg-white/90 disabled:opacity-60"
+                className="w-full mt-2 rounded-2xl bg-white py-3.5 font-bold text-zinc-950 shadow-lg shadow-black/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/95 hover:shadow-xl hover:shadow-black/20 active:translate-y-0 disabled:opacity-60 disabled:pointer-events-none"
               >
-                {enviando ? "Criando..." : "Criar meu cartão"}
+                {enviando ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-900 border-t-transparent" />
+                    <span>Criando...</span>
+                  </div>
+                ) : (
+                  "Criar meu cartão"
+                )}
               </button>
             </form>
-            <p className="mt-3 text-center text-xs text-white/50">
+            <p className="mt-4 text-center text-xs text-white/40 font-medium">
               Você recebe um link de acesso no seu email.
             </p>
           </div>
         )}
 
         {estado === "enviado" && resultado && (
-          <div className="rounded-3xl bg-white/10 p-6 text-center backdrop-blur-md ring-1 ring-white/20">
-            <span className="text-4xl">✅</span>
-            <h2 className="mt-2 text-lg font-bold text-white">Cartão criado!</h2>
-            <p className="mt-1 text-sm text-white/70">
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-8 text-center shadow-[0_24px_50px_-12px_rgba(0,0,0,0.5)] backdrop-blur-2xl transition-all duration-300">
+            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/10 border border-white/20 text-2xl mb-4">
+              ✅
+            </div>
+            <h2 className="text-xl font-bold text-white tracking-tight">Cartão criado!</h2>
+            <p className="mt-2 text-sm text-white/70 leading-relaxed">
               {resultado.emailEnviado
-                ? "Enviamos o link de acesso pro seu email."
+                ? "Enviamos o link de acesso para o seu email."
                 : "Seu cartão está pronto. Acesse pelo botão abaixo."}
             </p>
             <a
               href={resultado.link}
-              className="mt-5 block w-full rounded-xl bg-white py-3 font-bold text-zinc-900 transition hover:bg-white/90"
+              className="mt-6 block w-full rounded-2xl bg-white py-3.5 font-bold text-zinc-950 shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/95 hover:shadow-xl active:translate-y-0"
             >
               Ver meu cartão agora
             </a>
           </div>
         )}
 
-        <p className="mt-8 text-center text-xs text-white/40">powered by NewPerks</p>
+        <p className="mt-10 text-center text-xs text-white/30 tracking-wider font-semibold uppercase">
+          powered by NewPerks
+        </p>
       </div>
     </div>
   );
