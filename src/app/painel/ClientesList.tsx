@@ -7,14 +7,14 @@ type Carimbo = {
   id: string;
   descricao: string | null;
   valor: number | null;
-  createdAt: string;
+  createdAt: Date | string;
 };
 
 type Cartao = {
   id: string;
   selos: number;
   resgates: number;
-  updatedAt: string;
+  updatedAt: Date | string;
   carimbos: Carimbo[];
   cliente: { id: string; nome: string; telefone: string | null; email: string | null };
 };
@@ -27,7 +27,7 @@ function moeda(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function dataRelativa(iso: string) {
+function dataRelativa(iso: Date | string) {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
   if (diff < 60) return "agora";
   if (diff < 3600) return `${Math.floor(diff / 60)}min atrás`;

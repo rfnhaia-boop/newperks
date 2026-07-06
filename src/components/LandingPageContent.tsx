@@ -1,18 +1,18 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { ArrowRight, CheckCircle2, QrCode, Smartphone, Gift, TrendingUp, Users, Shield, HelpCircle, Star, Zap } from "lucide-react";
 import CartaoSelos from "./CartaoSelos";
 import TiltCard from "./TiltCard";
 
 export default function LandingPageContent() {
-  const stagger = {
+  const stagger: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.1 } }
   };
 
-  const fadeInUp = {
+  const fadeInUp: Variants = {
     hidden: { opacity: 0, y: 30 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
   };
@@ -30,7 +30,7 @@ export default function LandingPageContent() {
       <motion.nav 
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
+        transition={{ duration: 0.8, ease: "easeOut" as const }}
         className="fixed top-0 left-0 right-0 z-50 bg-zinc-950/40 backdrop-blur-xl border-b border-white/5"
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
