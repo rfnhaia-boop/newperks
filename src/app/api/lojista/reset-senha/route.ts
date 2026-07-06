@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { enviarEmailReset } from "@/lib/email";
+import { rateLimit } from "@/lib/rate-limit";
 
-// POST /api/lojista/reset-senha — solicita link de redefinição
 export async function POST(req: NextRequest) {
+  const blocked = rateLimit(req, { max: 3, windowSec: 60 });
+  if (blocked) return blocked;
   const { email } = await req.json();
   if (!email) return NextResponse.json({ error: "Email obrigatório" }, { status: 400 });
 

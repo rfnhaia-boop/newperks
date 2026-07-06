@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { enviarLinkCartao } from "@/lib/email";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Dados públicos do lojista (tela inicial do QR)
 export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
@@ -14,8 +15,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   return NextResponse.json(lojista);
 }
 
-// Cliente se cadastra (nome + email) → cria/acha cartão com token e envia o link
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  const blocked = rateLimit(req, { max: 10, windowSec: 60 });
+  if (blocked) return blocked;
+
   const { slug } = await params;
   const { nome, email, telefone } = await req.json();
 

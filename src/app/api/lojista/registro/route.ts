@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { TEMAS } from "@/lib/themes";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  const blocked = rateLimit(req, { max: 5, windowSec: 60 });
+  if (blocked) return blocked;
   const { nome, email, senha, nomeNegocio, tema } = await req.json();
 
   if (!nome || !email || !senha || !nomeNegocio) {
