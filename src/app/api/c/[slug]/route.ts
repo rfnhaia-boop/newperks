@@ -20,15 +20,39 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (blocked) return blocked;
 
   const { slug } = await params;
-  const { nome, email, telefone } = await req.json();
+  const { nome, email, telefone, modo } = await req.json();
 
-  if (!nome?.trim() || !email?.trim()) {
-    return NextResponse.json({ error: "Nome e email são obrigatórios" }, { status: 400 });
+  if (!email?.trim()) {
+    return NextResponse.json({ error: "Email é obrigatório" }, { status: 400 });
   }
   const emailNorm = email.trim().toLowerCase();
 
   const lojista = await prisma.lojista.findUnique({ where: { slug } });
   if (!lojista) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+
+  // Modo "entrar": cliente já tem cartão nesta loja — recupera pelo email
+  if (modo === "entrar") {
+    const cliente = await prisma.cliente.findUnique({ where: { email: emailNorm } });
+    const cartao = cliente
+      ? await prisma.cartao.findUnique({
+          where: { lojistaId_clienteId: { lojistaId: lojista.id, clienteId: cliente.id } },
+        })
+      : null;
+
+    if (!cartao) {
+      return NextResponse.json(
+        { error: "Não achamos cartão com esse email aqui. Faça seu cadastro." },
+        { status: 404 }
+      );
+    }
+
+    const base = process.env.NEXTAUTH_URL ?? "http://localhost:3001";
+    return NextResponse.json({ token: cartao.token, link: `${base}/cartao/${cartao.token}` });
+  }
+
+  if (!nome?.trim()) {
+    return NextResponse.json({ error: "Nome e email são obrigatórios" }, { status: 400 });
+  }
 
   // Upsert cliente por email
   let cliente = await prisma.cliente.findUnique({ where: { email: emailNorm } });

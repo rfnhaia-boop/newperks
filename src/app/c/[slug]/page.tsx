@@ -25,6 +25,9 @@ export default function EntradaQRPage({
   const [email, setEmail] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<{ link: string; emailEnviado: boolean } | null>(null);
+  // "cadastro" = primeira vez | "entrar" = já tem cartão nesta loja
+  const [modo, setModo] = useState<"cadastro" | "entrar">("cadastro");
+  const [erro, setErro] = useState<string | null>(null);
 
   const chave = `fidelix:token:${slug}`;
 
@@ -49,20 +52,29 @@ export default function EntradaQRPage({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!nome.trim() || !/.+@.+\..+/.test(email)) return;
+    if (!/.+@.+\..+/.test(email)) return;
+    if (modo === "cadastro" && !nome.trim()) return;
+    setErro(null);
     setEnviando(true);
     const res = await fetch(`/api/c/${slug}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome, email }),
+      body: JSON.stringify(modo === "entrar" ? { email, modo: "entrar" } : { nome, email }),
     });
     const data = await res.json();
     setEnviando(false);
     if (res.ok) {
       const token = data.link.split("/cartao/")[1];
       localStorage.setItem(chave, token);
+      if (modo === "entrar") {
+        // Já tem cartão: vai direto, sem tela intermediária
+        window.location.href = data.link;
+        return;
+      }
       setResultado({ link: data.link, emailEnviado: data.emailEnviado });
       setEstado("enviado");
+    } else {
+      setErro(data.error ?? "Algo deu errado. Tente de novo.");
     }
   }
 
@@ -106,25 +118,38 @@ export default function EntradaQRPage({
             {/* Glow inner line */}
             <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             
-            <h2 className="text-xl font-bold text-white tracking-tight">Bem-vindo! 👋</h2>
-            <p className="mt-1.5 text-sm text-white/70 leading-relaxed">
-              Cadastre-se para juntar selos e ganhar:{" "}
-              <strong className="text-white font-semibold underline decoration-white/30 underline-offset-2">
-                {lojista?.recompensa}
-              </strong>
-            </p>
-            
+            {modo === "cadastro" ? (
+              <>
+                <h2 className="text-xl font-bold text-white tracking-tight">Bem-vindo! 👋</h2>
+                <p className="mt-1.5 text-sm text-white/70 leading-relaxed">
+                  Cadastre-se para juntar selos e ganhar:{" "}
+                  <strong className="text-white font-semibold underline decoration-white/30 underline-offset-2">
+                    {lojista?.recompensa}
+                  </strong>
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-xl font-bold text-white tracking-tight">Que bom te ver! 🎉</h2>
+                <p className="mt-1.5 text-sm text-white/70 leading-relaxed">
+                  Digite o email do seu cadastro para abrir seu cartão.
+                </p>
+              </>
+            )}
+
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-              <div className="space-y-1">
-                <input
-                  type="text"
-                  placeholder="Seu nome"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-white placeholder-white/40 outline-none transition-all duration-300 focus:border-white/30 focus:bg-white/10 focus:ring-4 focus:ring-white/5"
-                  required
-                />
-              </div>
+              {modo === "cadastro" && (
+                <div className="space-y-1">
+                  <input
+                    type="text"
+                    placeholder="Seu nome"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-white placeholder-white/40 outline-none transition-all duration-300 focus:border-white/30 focus:bg-white/10 focus:ring-4 focus:ring-white/5"
+                    required
+                  />
+                </div>
+              )}
               <div className="space-y-1">
                 <input
                   type="email"
@@ -135,6 +160,13 @@ export default function EntradaQRPage({
                   required
                 />
               </div>
+
+              {erro && (
+                <p className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                  {erro}
+                </p>
+              )}
+
               <button
                 type="submit"
                 disabled={enviando}
@@ -143,16 +175,31 @@ export default function EntradaQRPage({
                 {enviando ? (
                   <div className="flex items-center justify-center gap-2">
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-900 border-t-transparent" />
-                    <span>Criando...</span>
+                    <span>{modo === "entrar" ? "Abrindo..." : "Criando..."}</span>
                   </div>
+                ) : modo === "entrar" ? (
+                  "Abrir meu cartão"
                 ) : (
                   "Criar meu cartão"
                 )}
               </button>
             </form>
-            <p className="mt-4 text-center text-xs text-white/40 font-medium">
-              Você recebe um link de acesso no seu email.
-            </p>
+
+            <button
+              onClick={() => {
+                setModo(modo === "cadastro" ? "entrar" : "cadastro");
+                setErro(null);
+              }}
+              className="mt-4 w-full text-center text-sm font-semibold text-white/60 transition hover:text-white"
+            >
+              {modo === "cadastro" ? "Já tenho cartão aqui → Entrar" : "Primeira vez? → Criar cartão"}
+            </button>
+
+            {modo === "cadastro" && (
+              <p className="mt-3 text-center text-xs text-white/40 font-medium">
+                Você recebe um link de acesso no seu email.
+              </p>
+            )}
           </div>
         )}
 
