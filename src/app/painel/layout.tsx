@@ -4,6 +4,7 @@ import { signOut } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import PainelNav from "./PainelNav";
 import BackgroundFidelix from "@/components/BackgroundFidelix";
+import Toaster from "@/components/Toaster";
 
 export default async function PainelLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -63,6 +64,7 @@ export default async function PainelLayout({ children }: { children: React.React
       </header>
 
       <main className="relative z-10 mx-auto max-w-5xl px-6 py-8">{children}</main>
+      <Toaster />
     </div>
   );
 }

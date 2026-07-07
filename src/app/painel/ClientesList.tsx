@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getTema } from "@/lib/themes";
+import { toast } from "@/components/Toaster";
 
 type Carimbo = {
   id: string;
@@ -114,9 +115,11 @@ export default function ClientesList({
     setDescricao("");
     setValor("");
     if (res.ok && data.completou) {
-      alert(`🎉 ${data.cartao.cliente.nome} completou o cartão! Recompensa: ${data.recompensa}`);
+      toast(`${data.cartao.cliente.nome} completou o cartão! Recompensa: ${data.recompensa}`, "festa");
+    } else if (res.ok) {
+      toast(`Selo registrado para ${data.cartao.cliente.nome}`, "sucesso");
     }
-    if (!res.ok) alert(data.error ?? "Erro");
+    if (!res.ok) toast(data.error ?? "Erro ao carimbar", "erro");
     router.refresh();
   }
 
@@ -130,9 +133,9 @@ export default function ClientesList({
     const data = await res.json();
     setLoading(null);
     if (res.ok && data.resgatou) {
-      alert(`✅ Recompensa entregue para ${data.cartao.cliente.nome}!`);
+      toast(`Recompensa entregue para ${data.cartao.cliente.nome}!`, "sucesso");
     }
-    if (!res.ok) alert(data.error ?? "Erro");
+    if (!res.ok) toast(data.error ?? "Erro ao resgatar", "erro");
     router.refresh();
   }
 

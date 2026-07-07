@@ -45,11 +45,24 @@ export default async function PainelPage() {
     orderBy: { updatedAt: "desc" },
   });
 
+  // Faturamento real: soma dos valores registrados nos carimbos
+  const vendas = await prisma.carimbo.aggregate({
+    where: { cartao: { lojistaId: session!.user!.id }, valor: { not: null } },
+    _sum: { valor: true },
+    _count: { valor: true },
+  });
+
   const goal = lojista?.selosParaGanhar ?? 10;
   const ticket = lojista?.ticketMedio ?? 0;
   const totalCarimbos = cartoes.reduce((a, c) => a + c.totalCarimbos, 0);
   const totalResgates = cartoes.reduce((a, c) => a + c.resgates, 0);
-  const faturamento = totalCarimbos * ticket;
+
+  const valorReal = vendas._sum.valor ?? 0;
+  const carimbosComValor = vendas._count.valor;
+  const carimbosSemValor = Math.max(0, totalCarimbos - carimbosComValor);
+  // Real quando registrado + estimativa (ticket médio) pros carimbos sem valor
+  const faturamento = valorReal + carimbosSemValor * ticket;
+  const temValorReal = carimbosComValor > 0;
 
   const completos = cartoes.filter((c) => c.selos >= goal);
   const emUso = cartoes.filter((c) => c.selos > 0 && c.selos < goal);
@@ -82,13 +95,18 @@ export default async function PainelPage() {
         <div className="flex flex-col gap-4">
           <Glass className="border-violet-500/20 p-5">
             <p className="text-xs uppercase tracking-wider text-violet-300/80">
-              Faturamento estimado
+              {temValorReal ? "Faturamento" : "Faturamento estimado"}
             </p>
             <p className="mt-1 text-4xl font-extrabold text-white">{moeda(faturamento)}</p>
             <p className="mt-1 text-xs text-zinc-400">
-              {ticket > 0
-                ? `${totalCarimbos} compras × ${moeda(ticket)}`
-                : "defina o ticket médio em Configurar"}
+              {temValorReal
+                ? `${moeda(valorReal)} registrado em ${carimbosComValor} venda${carimbosComValor !== 1 ? "s" : ""}` +
+                  (carimbosSemValor > 0 && ticket > 0
+                    ? ` + ${carimbosSemValor} × ${moeda(ticket)} (ticket médio)`
+                    : "")
+                : ticket > 0
+                  ? `${totalCarimbos} compras × ${moeda(ticket)}`
+                  : "defina o ticket médio em Configurar"}
             </p>
           </Glass>
           <div className="grid grid-cols-2 gap-4">
