@@ -13,8 +13,32 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXTAUTH_URL ?? "https://fidelix.newflowsys.cloud"),
   title: "NewPerks — Cartão Fidelidade Digital",
-  description: "Cartão fidelidade digital por QR code. Sem app, sem papel.",
+  description:
+    "Cartão fidelidade digital por QR code. Sem app, sem papel. Cliente escaneia, junta selos e volta mais vezes.",
+  openGraph: {
+    title: "NewPerks — Cartão Fidelidade Digital",
+    description:
+      "Fidelize seus clientes com um cartão digital por QR code. Sem app, sem papel.",
+    siteName: "NewPerks",
+    locale: "pt_BR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NewPerks — Cartão Fidelidade Digital",
+    description: "Fidelize seus clientes com um cartão digital por QR code.",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "NewPerks",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport = {
+  themeColor: "#7c3aed",
 };
 
 export default function RootLayout({
