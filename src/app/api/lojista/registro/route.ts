@@ -13,9 +13,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Dados incompletos" }, { status: 400 });
   }
 
+  if (typeof senha !== "string" || senha.length < 6) {
+    return NextResponse.json({ error: "Senha deve ter ao menos 6 caracteres" }, { status: 400 });
+  }
+
+  if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json({ error: "Email inválido" }, { status: 400 });
+  }
+
+  const emailNorm = email.trim().toLowerCase();
   const temaValido = tema && tema in TEMAS ? tema : "generico";
 
-  const existe = await prisma.lojista.findUnique({ where: { email } });
+  const existe = await prisma.lojista.findUnique({ where: { email: emailNorm } });
   if (existe) {
     return NextResponse.json({ error: "Email já cadastrado" }, { status: 409 });
   }
@@ -37,7 +46,7 @@ export async function POST(req: NextRequest) {
   const hash = await bcrypt.hash(senha, 10);
 
   const lojista = await prisma.lojista.create({
-    data: { nome, email, senha: hash, nomeNegocio, slug, tema: temaValido },
+    data: { nome, email: emailNorm, senha: hash, nomeNegocio, slug, tema: temaValido },
   });
 
   return NextResponse.json({ id: lojista.id, slug: lojista.slug }, { status: 201 });

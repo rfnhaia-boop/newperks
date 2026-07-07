@@ -33,6 +33,9 @@ export async function POST(req: NextRequest) {
 
 // PUT /api/lojista/reset-senha — redefine a senha com o token
 export async function PUT(req: NextRequest) {
+  const blocked = rateLimit(req, { max: 5, windowSec: 60 });
+  if (blocked) return blocked;
+
   const { token, senha } = await req.json();
   if (!token || !senha) return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
   if (senha.length < 6) return NextResponse.json({ error: "Senha deve ter ao menos 6 caracteres" }, { status: 400 });

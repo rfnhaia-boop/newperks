@@ -13,6 +13,7 @@ type Dados = {
   tema: string;
   selosParaGanhar: number;
   recompensa: string;
+  slug: string;
 };
 
 export default function CartaoPessoalPage({
@@ -302,41 +303,45 @@ export default function CartaoPessoalPage({
                   <div className="text-center pb-2 border-b border-white/10">
                     <span className="text-4xl">{tema.emoji}</span>
                     <h3 className="text-lg font-black text-white mt-2">{dados.nomeNegocio}</h3>
-                    <p className="text-xs text-white/60">Aproveite sua fidelidade VIP conosco!</p>
+                    <p className="text-xs text-white/60">Programa de fidelidade digital</p>
                   </div>
 
                   <div className="space-y-4 text-xs text-white/80">
                     <div className="flex items-center gap-3">
-                      <span className="text-lg flex-shrink-0">⏰</span>
+                      <span className="text-lg flex-shrink-0">🎁</span>
                       <div>
-                        <p className="font-bold text-white">Horário de Atendimento</p>
-                        <p className="text-white/60 mt-0.5">Segunda a Sábado, das 9h às 19h</p>
+                        <p className="font-bold text-white">Sua recompensa</p>
+                        <p className="text-white/60 mt-0.5">{dados.recompensa}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <span className="text-lg flex-shrink-0">📍</span>
+                      <span className="text-lg flex-shrink-0">{tema.emoji}</span>
                       <div>
-                        <p className="font-bold text-white">Nosso Endereço</p>
-                        <p className="text-white/60 mt-0.5">Verifique com o estabelecimento local</p>
+                        <p className="font-bold text-white">Como ganhar</p>
+                        <p className="text-white/60 mt-0.5">
+                          Junte {dados.selosParaGanhar} selos — um a cada visita — e resgate no balcão.
+                        </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <span className="text-lg flex-shrink-0">💬</span>
+                      <span className="text-lg flex-shrink-0">🔗</span>
                       <div>
-                        <p className="font-bold text-white">Contato & WhatsApp</p>
-                        <p className="text-white/60 mt-0.5">Solicite suporte no próprio local</p>
+                        <p className="font-bold text-white">Seu acesso</p>
+                        <p className="text-white/60 mt-0.5">
+                          Este link é pessoal — salve nos favoritos ou guarde o email de boas-vindas.
+                        </p>
                       </div>
                     </div>
                   </div>
 
                   <div className="border-t border-white/10 pt-4 text-center">
-                    <a 
-                      href={`/c/${dados.nomeNegocio.toLowerCase().replace(/[^a-z0-9]/g, "")}`}
+                    <a
+                      href={`/c/${dados.slug}`}
                       className="inline-flex items-center gap-1.5 text-xs text-violet-400 font-bold hover:underline"
                     >
-                      <span>Novo Cadastro</span>
+                      <span>Cadastrar outra pessoa</span>
                       <span>→</span>
                     </a>
                   </div>
