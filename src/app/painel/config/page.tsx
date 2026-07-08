@@ -13,6 +13,9 @@ export default async function ConfigPage() {
       recompensa: true,
       ticketMedio: true,
       whatsapp: true,
+      regras: true,
+      horario: true,
+      endereco: true,
     },
   });
 
@@ -32,6 +35,9 @@ export default async function ConfigPage() {
           recompensa: lojista?.recompensa ?? "",
           ticketMedio: lojista?.ticketMedio ?? 0,
           whatsapp: lojista?.whatsapp ?? "",
+          regras: lojista?.regras ?? "",
+          horario: lojista?.horario ?? "",
+          endereco: lojista?.endereco ?? "",
         }}
       />
     </div>

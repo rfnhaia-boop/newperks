@@ -10,7 +10,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
     include: {
       cliente: { select: { nome: true } },
       lojista: {
-        select: { nomeNegocio: true, tema: true, selosParaGanhar: true, recompensa: true, slug: true, whatsapp: true },
+        select: {
+          nomeNegocio: true,
+          tema: true,
+          selosParaGanhar: true,
+          recompensa: true,
+          slug: true,
+          whatsapp: true,
+          regras: true,
+          horario: true,
+          endereco: true,
+        },
       },
     },
   });
@@ -27,5 +37,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
     recompensa: cartao.lojista.recompensa,
     slug: cartao.lojista.slug,
     whatsapp: cartao.lojista.whatsapp,
+    regras: cartao.lojista.regras,
+    horario: cartao.lojista.horario,
+    endereco: cartao.lojista.endereco,
   });
 }

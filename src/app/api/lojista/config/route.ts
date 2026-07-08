@@ -7,7 +7,8 @@ export async function PUT(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
-  const { tema, selosParaGanhar, recompensa, nomeNegocio, ticketMedio, whatsapp } = await req.json();
+  const { tema, selosParaGanhar, recompensa, nomeNegocio, ticketMedio, whatsapp, regras, horario, endereco } =
+    await req.json();
 
   const data: Record<string, unknown> = {};
   if (typeof whatsapp === "string") {
@@ -15,6 +16,10 @@ export async function PUT(req: NextRequest) {
     const digitos = whatsapp.replace(/\D/g, "").slice(0, 15);
     data.whatsapp = digitos || null;
   }
+  // Textos livres opcionais — vazio limpa
+  if (typeof regras === "string") data.regras = regras.trim().slice(0, 600) || null;
+  if (typeof horario === "string") data.horario = horario.trim().slice(0, 120) || null;
+  if (typeof endereco === "string") data.endereco = endereco.trim().slice(0, 200) || null;
   if (tema && tema in TEMAS) data.tema = tema;
   if (typeof selosParaGanhar === "number" && selosParaGanhar >= 1 && selosParaGanhar <= 20)
     data.selosParaGanhar = selosParaGanhar;

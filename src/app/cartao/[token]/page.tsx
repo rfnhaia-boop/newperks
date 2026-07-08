@@ -16,6 +16,9 @@ type Dados = {
   recompensa: string;
   slug: string;
   whatsapp: string | null;
+  regras: string | null;
+  horario: string | null;
+  endereco: string | null;
 };
 
 export default function CartaoPessoalPage({
@@ -29,7 +32,9 @@ export default function CartaoPessoalPage({
   const [mostrarCapa, setMostrarCapa] = useState(true);
   const [abaAtiva, setAbaAtiva] = useState<"cartao" | "beneficios" | "sobre">("cartao");
   const [celebrar, setCelebrar] = useState(false);
+  const [resgatado, setResgatado] = useState(false);
   const selosAnteriores = useRef<number | null>(null);
+  const resgatesAnteriores = useRef<number | null>(null);
 
   const carregar = useCallback(async () => {
     const res = await fetch(`/api/cartao/${token}`);
@@ -52,6 +57,15 @@ export default function CartaoPessoalPage({
       } else {
         navigator.vibrate?.(60);
       }
+    }
+
+    // Resgate ao vivo: recompensa entregue → cartão renovado
+    const resgAntes = resgatesAnteriores.current;
+    resgatesAnteriores.current = d.resgates;
+    if (resgAntes !== null && d.resgates > resgAntes) {
+      setResgatado(true);
+      navigator.vibrate?.([80, 50, 80]);
+      setTimeout(() => setResgatado(false), 8000);
     }
   }, [token]);
 
@@ -192,6 +206,16 @@ export default function CartaoPessoalPage({
             <div className="transition-all duration-300">
               {abaAtiva === "cartao" && (
                 <div className="space-y-4 animate-slide-up">
+                  {resgatado && (
+                    <div
+                      className="rounded-2xl border border-emerald-400/40 bg-emerald-500/15 p-4 text-center backdrop-blur-md animate-slide-up"
+                    >
+                      <p className="text-base font-black text-emerald-300">🎁 Prêmio resgatado!</p>
+                      <p className="mt-1 text-xs text-emerald-100/80">
+                        Aproveite! Seu cartão foi renovado — já pode começar a juntar selos de novo.
+                      </p>
+                    </div>
+                  )}
                   <CartaoSelos
                     tema={dados.tema}
                     nomeNegocio={dados.nomeNegocio}
@@ -302,9 +326,19 @@ export default function CartaoPessoalPage({
                   <div className="border-t border-white/10 pt-4">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-2">Regras de Lealdade</h3>
                     <ul className="space-y-1.5 text-xs text-white/60 list-disc list-inside">
-                      <li>Uso individual e intransferível</li>
-                      <li>Selos acumuláveis em qualquer compra</li>
-                      <li>Sujeito às regras e disponibilidade do parceiro</li>
+                      {dados.regras ? (
+                        dados.regras
+                          .split("\n")
+                          .map((r) => r.trim())
+                          .filter(Boolean)
+                          .map((r, i) => <li key={i}>{r}</li>)
+                      ) : (
+                        <>
+                          <li>Uso individual e intransferível</li>
+                          <li>Selos acumuláveis em qualquer compra</li>
+                          <li>Sujeito às regras e disponibilidade do parceiro</li>
+                        </>
+                      )}
                     </ul>
                   </div>
                 </div>
@@ -333,6 +367,26 @@ export default function CartaoPessoalPage({
                         <p className="text-white/60 mt-0.5">{dados.recompensa}</p>
                       </div>
                     </div>
+
+                    {dados.horario && (
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg flex-shrink-0">⏰</span>
+                        <div>
+                          <p className="font-bold text-white">Horário de atendimento</p>
+                          <p className="text-white/60 mt-0.5">{dados.horario}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {dados.endereco && (
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg flex-shrink-0">📍</span>
+                        <div>
+                          <p className="font-bold text-white">Endereço</p>
+                          <p className="text-white/60 mt-0.5">{dados.endereco}</p>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex items-center gap-3">
                       <span className="text-lg flex-shrink-0">{tema.emoji}</span>

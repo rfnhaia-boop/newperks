@@ -12,6 +12,9 @@ type Config = {
   recompensa: string;
   ticketMedio: number;
   whatsapp: string;
+  regras: string;
+  horario: string;
+  endereco: string;
 };
 
 export default function ConfigForm({ inicial }: { inicial: Config }) {
@@ -157,6 +160,57 @@ export default function ConfigForm({ inicial }: { inicial: Config }) {
         />
         <p className="mt-1 text-xs text-zinc-500">
           Aparece como botão &quot;Chamar no WhatsApp&quot; no cartão do cliente. Deixe vazio pra não mostrar.
+        </p>
+      </div>
+
+      {/* Regras do programa */}
+      <div>
+        <label className="mb-2 block text-sm font-medium text-zinc-300">
+          Regras do programa
+        </label>
+        <textarea
+          value={cfg.regras}
+          onChange={(e) => setCfg({ ...cfg, regras: e.target.value })}
+          rows={4}
+          maxLength={600}
+          placeholder={"Uma regra por linha. Ex:\nVálido de segunda a sexta\n1 selo por compra acima de R$ 20"}
+          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-white outline-none backdrop-blur-md transition focus:border-violet-500/50 focus:bg-white/10 resize-none"
+        />
+        <p className="mt-1 text-xs text-zinc-500">
+          Cada linha vira um item na aba Benefícios do cartão. Vazio usa as regras padrão.
+        </p>
+      </div>
+
+      {/* Horário */}
+      <div>
+        <label className="mb-2 block text-sm font-medium text-zinc-300">
+          Horário de atendimento
+        </label>
+        <input
+          type="text"
+          value={cfg.horario}
+          onChange={(e) => setCfg({ ...cfg, horario: e.target.value })}
+          maxLength={120}
+          placeholder="Ex: Segunda a Sábado, das 9h às 19h"
+          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-white outline-none backdrop-blur-md transition focus:border-violet-500/50 focus:bg-white/10"
+        />
+      </div>
+
+      {/* Endereço */}
+      <div>
+        <label className="mb-2 block text-sm font-medium text-zinc-300">
+          Endereço
+        </label>
+        <input
+          type="text"
+          value={cfg.endereco}
+          onChange={(e) => setCfg({ ...cfg, endereco: e.target.value })}
+          maxLength={200}
+          placeholder="Ex: Rua das Flores, 123 — Centro, Jundiaí"
+          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-white outline-none backdrop-blur-md transition focus:border-violet-500/50 focus:bg-white/10"
+        />
+        <p className="mt-1 text-xs text-zinc-500">
+          Horário e endereço aparecem na aba &quot;Sobre nós&quot; do cartão, se preenchidos.
         </p>
       </div>
 
