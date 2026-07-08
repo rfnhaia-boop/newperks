@@ -36,14 +36,15 @@ function dataRelativa(iso: Date | string) {
   return `${Math.floor(diff / 86400)}d atrás`;
 }
 
-type SecaoKey = "prontos" | "juntando" | "novos" | "sumidos";
+type FiltroKey = "todos" | "prontos" | "juntando" | "novos" | "sumidos";
 
-const SECOES: Record<SecaoKey, { label: string; emoji: string; cor: string }> = {
-  prontos: { label: "Prontos pra resgatar", emoji: "🎁", cor: "text-emerald-400" },
-  juntando: { label: "Juntando selos", emoji: "⏳", cor: "text-cyan-400" },
-  novos: { label: "Novos", emoji: "✨", cor: "text-violet-400" },
-  sumidos: { label: "Sumidos há 30+ dias", emoji: "😴", cor: "text-amber-400" },
-};
+const FILTROS: { key: FiltroKey; label: string; ativo: string }[] = [
+  { key: "todos", label: "Todos", ativo: "border-white/40 bg-white/15 text-white" },
+  { key: "prontos", label: "🎁 Prontos", ativo: "border-emerald-500/50 bg-emerald-500/20 text-emerald-300" },
+  { key: "juntando", label: "⏳ Juntando", ativo: "border-cyan-500/50 bg-cyan-500/20 text-cyan-300" },
+  { key: "novos", label: "✨ Novos", ativo: "border-violet-500/50 bg-violet-500/20 text-violet-300" },
+  { key: "sumidos", label: "😴 Sumidos", ativo: "border-amber-500/50 bg-amber-500/20 text-amber-300" },
+];
 
 const DIAS_SUMIDO = 30;
 
@@ -62,305 +63,102 @@ export default function ClientesList({
 }) {
   const router = useRouter();
   const [busca, setBusca] = useState("");
+  const [filtro, setFiltro] = useState<FiltroKey>("todos");
   const [loading, setLoading] = useState<string | null>(null);
-  const [formAberto, setFormAberto] = useState<string | null>(null);
+  const [aberto, setAberto] = useState<string | null>(null); // clienteId do popup
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
-  const [historicoAberto, setHistoricoAberto] = useState<string | null>(null);
-  const [fechadas, setFechadas] = useState<Set<SecaoKey>>(new Set());
+  const [historicoCompleto, setHistoricoCompleto] = useState(false);
 
   const t = getTema(tema);
   const { Icone } = t;
 
-  const filtrados = cartoes.filter((c) => {
-    const q = busca.toLowerCase();
-    return (
-      c.cliente.nome.toLowerCase().includes(q) ||
-      (c.cliente.email ?? "").toLowerCase().includes(q) ||
-      (c.cliente.telefone ?? "").includes(busca)
-    );
-  });
-
-  function statusDe(cartao: Cartao): SecaoKey {
-    // Pronto pra resgatar sempre aparece como pronto, mesmo sumido
+  function statusDe(cartao: Cartao): Exclude<FiltroKey, "todos"> {
     if (cartao.selos >= selosParaGanhar) return "prontos";
     if (diasSemVisita(cartao) >= DIAS_SUMIDO) return "sumidos";
     if (cartao.selos === 0) return "novos";
     return "juntando";
   }
 
-  const grupos: Record<SecaoKey, Cartao[]> = { prontos: [], juntando: [], novos: [], sumidos: [] };
-  for (const c of filtrados) grupos[statusDe(c)].push(c);
+  const filtrados = cartoes.filter((c) => {
+    const q = busca.toLowerCase();
+    const bateBusca =
+      c.cliente.nome.toLowerCase().includes(q) ||
+      (c.cliente.email ?? "").toLowerCase().includes(q) ||
+      (c.cliente.telefone ?? "").includes(busca);
+    const bateFiltro = filtro === "todos" || statusDe(c) === filtro;
+    return bateBusca && bateFiltro;
+  });
 
-  function toggleSecao(key: SecaoKey) {
-    setFechadas((prev) => {
-      const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
-      return next;
-    });
-  }
+  // Prontos primeiro, depois mais ativos
+  const ordenados = [...filtrados].sort((a, b) => {
+    const pa = statusDe(a) === "prontos" ? 0 : 1;
+    const pb = statusDe(b) === "prontos" ? 0 : 1;
+    if (pa !== pb) return pa - pb;
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
 
-  function abrirForm(clienteId: string) {
-    setFormAberto(clienteId);
+  const contagem: Record<FiltroKey, number> = {
+    todos: cartoes.length,
+    prontos: 0,
+    juntando: 0,
+    novos: 0,
+    sumidos: 0,
+  };
+  for (const c of cartoes) contagem[statusDe(c)]++;
+
+  const cartaoAberto = aberto ? cartoes.find((c) => c.cliente.id === aberto) ?? null : null;
+
+  function abrirPopup(clienteId: string) {
+    setAberto(clienteId);
     setDescricao("");
     setValor("");
+    setHistoricoCompleto(false);
   }
 
-  async function confirmarSelo(clienteId: string) {
+  async function chamarApi(clienteId: string, body: Record<string, unknown>) {
     setLoading(clienteId);
     const res = await fetch("/api/selos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clienteId,
-        acao: "carimbar",
-        descricao: descricao || undefined,
-        valor: valor || undefined,
-      }),
+      body: JSON.stringify({ clienteId, ...body }),
     });
     const data = await res.json();
     setLoading(null);
-    setFormAberto(null);
-    setDescricao("");
-    setValor("");
+    return { res, data };
+  }
+
+  async function carimbar(clienteId: string) {
+    const { res, data } = await chamarApi(clienteId, {
+      acao: "carimbar",
+      descricao: descricao || undefined,
+      valor: valor || undefined,
+    });
     if (res.ok && data.completou) {
       toast(`${data.cartao.cliente.nome} completou o cartão! Recompensa: ${data.recompensa}`, "festa");
     } else if (res.ok) {
       toast(`Selo registrado para ${data.cartao.cliente.nome}`, "sucesso");
+    } else {
+      toast(data.error ?? "Erro ao carimbar", "erro");
     }
-    if (!res.ok) toast(data.error ?? "Erro ao carimbar", "erro");
+    setDescricao("");
+    setValor("");
     router.refresh();
   }
 
   async function resgatar(clienteId: string) {
-    setLoading(clienteId);
-    const res = await fetch("/api/selos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clienteId, acao: "resgatar" }),
-    });
-    const data = await res.json();
-    setLoading(null);
-    if (res.ok && data.resgatou) {
-      toast(`Recompensa entregue para ${data.cartao.cliente.nome}!`, "sucesso");
-    }
+    const { res, data } = await chamarApi(clienteId, { acao: "resgatar" });
+    if (res.ok && data.resgatou) toast(`Recompensa entregue para ${data.cartao.cliente.nome}!`, "sucesso");
     if (!res.ok) toast(data.error ?? "Erro ao resgatar", "erro");
     router.refresh();
   }
 
   async function desfazer(clienteId: string) {
-    setLoading(clienteId);
-    const res = await fetch("/api/selos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clienteId, acao: "desfazer" }),
-    });
-    const data = await res.json();
-    setLoading(null);
+    const { res, data } = await chamarApi(clienteId, { acao: "desfazer" });
     if (res.ok) toast(`Último selo de ${data.cartao.cliente.nome} desfeito`, "sucesso");
     else toast(data.error ?? "Erro ao desfazer", "erro");
     router.refresh();
   }
-
-  function renderCard(cartao: Cartao) {
-    const completo = cartao.selos >= selosParaGanhar;
-    const pct = Math.min((cartao.selos / selosParaGanhar) * 100, 100);
-    const esteFormAberto = formAberto === cartao.cliente.id;
-    const esteHistorico = historicoAberto === cartao.cliente.id;
-    const ultimoCarimbo = cartao.carimbos[0];
-
-    return (
-      <div
-        key={cartao.id}
-        className="overflow-hidden rounded-2xl border border-white/10 transition hover:border-white/20"
-        style={{
-          background: "rgba(255,255,255,0.04)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-        }}
-      >
-        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-        <div className="p-4">
-          {/* Header */}
-          <div className="flex items-center gap-3">
-            <div
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${t.seloBg}`}
-            >
-              {iniciais(cartao.cliente.nome)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold text-white">{cartao.cliente.nome}</p>
-              <p className="truncate text-xs text-zinc-500">
-                {cartao.cliente.email ?? cartao.cliente.telefone ?? "—"}
-              </p>
-            </div>
-            {completo ? (
-              <button
-                onClick={() => resgatar(cartao.cliente.id)}
-                disabled={loading === cartao.cliente.id}
-                className="shrink-0 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
-              >
-                {loading === cartao.cliente.id ? "..." : "✓ Resgatar"}
-              </button>
-            ) : (
-              <button
-                onClick={() => (esteFormAberto ? setFormAberto(null) : abrirForm(cartao.cliente.id))}
-                disabled={loading === cartao.cliente.id}
-                className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50 ${
-                  esteFormAberto ? "bg-white/10 hover:bg-white/15" : "bg-violet-600 hover:bg-violet-500"
-                }`}
-              >
-                {loading === cartao.cliente.id ? "..." : esteFormAberto ? "Cancelar" : "+ Selo"}
-              </button>
-            )}
-          </div>
-
-          {/* Progresso — selinhos + barra */}
-          <div className="mt-3">
-            <div className="flex items-center justify-between text-xs text-zinc-500 mb-2">
-              <span>
-                {completo ? (
-                  <span className="font-semibold text-emerald-400">Cartão completo!</span>
-                ) : (
-                  `${cartao.selos} de ${selosParaGanhar} selos`
-                )}
-              </span>
-              <span>
-                {cartao.resgates > 0 && `${cartao.resgates} resgate${cartao.resgates !== 1 ? "s" : ""}`}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {Array.from({ length: selosParaGanhar }).map((_, i) => {
-                const carimbado = i < cartao.selos;
-                return (
-                  <div
-                    key={i}
-                    className={`flex h-7 w-7 items-center justify-center rounded-full border transition ${
-                      carimbado
-                        ? `${t.seloBg} border-transparent text-white shadow-sm`
-                        : "border-white/10 bg-white/5 text-zinc-600"
-                    }`}
-                  >
-                    <Icone className="h-3.5 w-3.5" />
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/5">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${completo ? "bg-emerald-500" : t.seloBg}`}
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Cliente sumido — chamar de volta */}
-          {!completo && diasSemVisita(cartao) >= DIAS_SUMIDO && (
-            <div className="mt-2.5 flex items-center justify-between gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2">
-              <span className="text-xs font-medium text-amber-300">
-                😴 {diasSemVisita(cartao)} dias sem visitar
-              </span>
-              {cartao.cliente.telefone && (
-                <a
-                  href={`https://wa.me/55${cartao.cliente.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(
-                    `Oi ${cartao.cliente.nome.split(" ")[0]}! Sentimos sua falta 😊 Seu cartão fidelidade já tem ${cartao.selos} selo${cartao.selos !== 1 ? "s" : ""} — passa aqui pra continuar juntando!`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0 rounded-lg bg-emerald-600/80 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-emerald-500"
-                >
-                  Chamar no WhatsApp
-                </a>
-              )}
-            </div>
-          )}
-
-          {/* Último pedido */}
-          {ultimoCarimbo?.descricao && !esteFormAberto && (
-            <div className="mt-2.5 flex items-center gap-1.5 text-xs text-zinc-500">
-              <span>🛒</span>
-              <span className="truncate">{ultimoCarimbo.descricao}</span>
-              {ultimoCarimbo.valor && (
-                <span className="shrink-0 font-medium text-zinc-400">{moeda(ultimoCarimbo.valor)}</span>
-              )}
-              <span className="shrink-0 ml-auto">{dataRelativa(ultimoCarimbo.createdAt)}</span>
-            </div>
-          )}
-
-          {/* Form inline */}
-          {esteFormAberto && (
-            <div className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/5 p-3">
-              <p className="text-xs font-medium text-zinc-400">O que o cliente pediu? (opcional)</p>
-              <input
-                type="text"
-                placeholder="Ex: 2 cafés + brownie"
-                value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-                autoFocus
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white outline-none placeholder-zinc-600 focus:border-violet-500/60"
-              />
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  placeholder="Valor (R$)"
-                  value={valor}
-                  onChange={(e) => setValor(e.target.value)}
-                  className="w-32 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white outline-none placeholder-zinc-600 focus:border-violet-500/60"
-                />
-                <button
-                  onClick={() => confirmarSelo(cartao.cliente.id)}
-                  disabled={loading === cartao.cliente.id}
-                  className="flex-1 rounded-lg bg-violet-600 py-1.5 text-sm font-semibold text-white transition hover:bg-violet-500 disabled:opacity-50"
-                >
-                  {loading === cartao.cliente.id ? "Salvando..." : "Confirmar Selo"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Histórico + desfazer */}
-          <div className="mt-2.5 flex items-center gap-3">
-            {cartao.carimbos.length > 0 && (
-              <button
-                onClick={() => setHistoricoAberto(esteHistorico ? null : cartao.cliente.id)}
-                className="flex items-center gap-1 text-xs text-zinc-600 transition hover:text-zinc-400"
-              >
-                <span>{esteHistorico ? "▲" : "▼"}</span>
-                <span>{cartao.carimbos.length} carimbo{cartao.carimbos.length !== 1 ? "s" : ""} no histórico</span>
-              </button>
-            )}
-            {cartao.selos > 0 && (
-              <button
-                onClick={() => desfazer(cartao.cliente.id)}
-                disabled={loading === cartao.cliente.id}
-                className="ml-auto flex items-center gap-1 text-xs text-zinc-600 transition hover:text-amber-400 disabled:opacity-50"
-                title="Desfaz o último selo (erro de operação)"
-              >
-                <span>↩</span>
-                <span>Desfazer selo</span>
-              </button>
-            )}
-          </div>
-          {esteHistorico && (
-            <div className="mt-2 space-y-1 rounded-xl border border-white/5 bg-white/[0.03] p-2">
-              {cartao.carimbos.map((c) => (
-                <div key={c.id} className="flex items-center gap-2 py-1 text-xs">
-                  <Icone className="h-3 w-3 shrink-0 text-zinc-500" />
-                  <span className="flex-1 truncate text-zinc-400">
-                    {c.descricao ?? <span className="text-zinc-600 italic">sem descrição</span>}
-                  </span>
-                  {c.valor && <span className="shrink-0 text-zinc-400">{moeda(c.valor)}</span>}
-                  <span className="shrink-0 text-zinc-600">{dataRelativa(c.createdAt)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  const ordem: SecaoKey[] = ["prontos", "juntando", "novos", "sumidos"];
 
   return (
     <div className="space-y-4">
@@ -373,43 +171,266 @@ export default function ClientesList({
         className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-white outline-none backdrop-blur-md transition focus:border-violet-500/50 focus:bg-white/10 placeholder-zinc-500"
       />
 
-      {filtrados.length === 0 ? (
+      {/* Chips de filtro */}
+      <div className="flex flex-wrap gap-2">
+        {FILTROS.map((f) => {
+          const ativo = filtro === f.key;
+          const n = contagem[f.key];
+          if (f.key !== "todos" && n === 0) return null;
+          return (
+            <button
+              key={f.key}
+              onClick={() => setFiltro(f.key)}
+              className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
+                ativo ? f.ativo : "border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200"
+              }`}
+            >
+              {f.label} <span className="opacity-70">{n}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {ordenados.length === 0 ? (
         <div className="rounded-xl border border-dashed border-white/10 py-12 text-center">
-          <p className="text-zinc-500">Nenhum cliente ainda</p>
-          <p className="mt-1 text-sm text-zinc-600">Os clientes aparecem aqui quando escaneiam seu QR code</p>
+          <p className="text-zinc-500">
+            {cartoes.length === 0 ? "Nenhum cliente ainda" : "Nenhum cliente nesse filtro"}
+          </p>
+          {cartoes.length === 0 && (
+            <p className="mt-1 text-sm text-zinc-600">Os clientes aparecem aqui quando escaneiam seu QR code</p>
+          )}
         </div>
       ) : (
-        <div className="space-y-5">
-          {ordem.map((key) => {
-            const lista = grupos[key];
-            if (lista.length === 0) return null;
-            const secao = SECOES[key];
-            const aberta = !fechadas.has(key);
-
+        /* Grade de mini-cards */
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {ordenados.map((cartao) => {
+            const status = statusDe(cartao);
+            const pct = Math.min((cartao.selos / selosParaGanhar) * 100, 100);
+            const borda =
+              status === "prontos"
+                ? "border-emerald-500/50 hover:border-emerald-400"
+                : status === "sumidos"
+                  ? "border-amber-500/40 hover:border-amber-400/70"
+                  : "border-white/10 hover:border-white/25";
             return (
-              <section key={key}>
-                {/* Cabeçalho da seção */}
-                <button
-                  onClick={() => toggleSecao(key)}
-                  className="mb-3 flex w-full items-center gap-2.5 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-2.5 text-left transition hover:bg-white/[0.06]"
+              <button
+                key={cartao.id}
+                onClick={() => abrirPopup(cartao.cliente.id)}
+                className={`group rounded-2xl border ${borda} p-3.5 text-center transition hover:-translate-y-0.5`}
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  backdropFilter: "blur(16px)",
+                  WebkitBackdropFilter: "blur(16px)",
+                }}
+              >
+                <div
+                  className={`mx-auto flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-white ${t.seloBg}`}
                 >
-                  <span className="text-lg">{secao.emoji}</span>
-                  <span className={`font-semibold ${secao.cor}`}>{secao.label}</span>
-                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-medium text-zinc-300">
-                    {lista.length}
-                  </span>
-                  <span className="ml-auto text-zinc-500">{aberta ? "▲" : "▼"}</span>
-                </button>
-
-                {/* Grade de clientes */}
-                {aberta && (
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {lista.map((cartao) => renderCard(cartao))}
-                  </div>
-                )}
-              </section>
+                  {iniciais(cartao.cliente.nome)}
+                </div>
+                <p className="mt-2 truncate text-sm font-semibold text-white">{cartao.cliente.nome}</p>
+                <p
+                  className={`mt-0.5 text-xs font-medium ${
+                    status === "prontos"
+                      ? "text-emerald-400"
+                      : status === "sumidos"
+                        ? "text-amber-400"
+                        : "text-zinc-500"
+                  }`}
+                >
+                  {status === "prontos"
+                    ? `${cartao.selos}/${selosParaGanhar} 🎁`
+                    : status === "sumidos"
+                      ? `😴 ${diasSemVisita(cartao)} dias`
+                      : `${cartao.selos}/${selosParaGanhar}`}
+                </p>
+                <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/5">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      status === "prontos" ? "bg-emerald-500" : t.seloBg
+                    }`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </button>
             );
           })}
+        </div>
+      )}
+
+      {/* Popup do cliente */}
+      {cartaoAberto && (
+        <div
+          className="fixed inset-0 z-[95] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() => setAberto(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md overflow-hidden rounded-3xl border border-white/15 shadow-2xl"
+            style={{
+              background: "rgba(24, 24, 27, 0.92)",
+              backdropFilter: "blur(30px) saturate(160%)",
+              WebkitBackdropFilter: "blur(30px) saturate(160%)",
+            }}
+          >
+            <div className="h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+            <div className="max-h-[85vh] overflow-y-auto p-5">
+              {(() => {
+                const cartao = cartaoAberto;
+                const status = statusDe(cartao);
+                const completo = cartao.selos >= selosParaGanhar;
+                const carimbos = historicoCompleto ? cartao.carimbos : cartao.carimbos.slice(0, 2);
+
+                return (
+                  <>
+                    {/* Header */}
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${t.seloBg}`}
+                      >
+                        {iniciais(cartao.cliente.nome)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-bold text-white">{cartao.cliente.nome}</p>
+                        <p className="truncate text-xs text-zinc-500">
+                          {cartao.cliente.email ?? cartao.cliente.telefone ?? "—"}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setAberto(null)}
+                        aria-label="Fechar"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-zinc-400 transition hover:bg-white/20 hover:text-white"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    {/* Sumido — chamar de volta */}
+                    {!completo && status === "sumidos" && (
+                      <div className="mt-4 flex items-center justify-between gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2">
+                        <span className="text-xs font-medium text-amber-300">
+                          😴 {diasSemVisita(cartao)} dias sem visitar
+                        </span>
+                        {cartao.cliente.telefone && (
+                          <a
+                            href={`https://wa.me/55${cartao.cliente.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                              `Oi ${cartao.cliente.nome.split(" ")[0]}! Sentimos sua falta 😊 Seu cartão fidelidade já tem ${cartao.selos} selo${cartao.selos !== 1 ? "s" : ""} — passa aqui pra continuar juntando!`
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="shrink-0 rounded-lg bg-emerald-600/80 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-emerald-500"
+                          >
+                            Chamar no WhatsApp
+                          </a>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Selinhos */}
+                    <div className="mt-5 flex flex-wrap justify-center gap-2">
+                      {Array.from({ length: selosParaGanhar }).map((_, i) => {
+                        const carimbado = i < cartao.selos;
+                        return (
+                          <div
+                            key={i}
+                            className={`flex h-9 w-9 items-center justify-center rounded-full border transition ${
+                              carimbado
+                                ? `${t.seloBg} border-transparent text-white shadow-md`
+                                : "border-white/10 bg-white/5 text-zinc-600"
+                            }`}
+                          >
+                            <Icone className="h-4 w-4" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-2.5 text-center text-xs text-zinc-500">
+                      {completo ? (
+                        <span className="font-semibold text-emerald-400">Cartão completo! 🎉</span>
+                      ) : (
+                        `${cartao.selos} de ${selosParaGanhar} selos`
+                      )}
+                      {cartao.resgates > 0 && ` · ${cartao.resgates} resgate${cartao.resgates !== 1 ? "s" : ""}`}
+                    </p>
+
+                    {/* Ação */}
+                    {completo ? (
+                      <button
+                        onClick={() => resgatar(cartao.cliente.id)}
+                        disabled={loading === cartao.cliente.id}
+                        className="mt-4 w-full rounded-2xl bg-emerald-600 py-3.5 font-bold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+                      >
+                        {loading === cartao.cliente.id ? "..." : "🎁 Entregar recompensa"}
+                      </button>
+                    ) : (
+                      <div className="mt-4 space-y-2 rounded-2xl border border-white/10 bg-white/5 p-3">
+                        <p className="text-xs font-medium text-zinc-400">O que o cliente pediu? (opcional)</p>
+                        <input
+                          type="text"
+                          placeholder="Ex: 2 cafés + brownie"
+                          value={descricao}
+                          onChange={(e) => setDescricao(e.target.value)}
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder-zinc-600 focus:border-violet-500/60"
+                        />
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            placeholder="Valor (R$)"
+                            value={valor}
+                            onChange={(e) => setValor(e.target.value)}
+                            className="w-28 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder-zinc-600 focus:border-violet-500/60"
+                          />
+                          <button
+                            onClick={() => carimbar(cartao.cliente.id)}
+                            disabled={loading === cartao.cliente.id}
+                            className="flex-1 rounded-lg bg-violet-600 py-2 text-sm font-bold text-white transition hover:bg-violet-500 disabled:opacity-50"
+                          >
+                            {loading === cartao.cliente.id ? "Salvando..." : "+ Dar selo"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Histórico */}
+                    {cartao.carimbos.length > 0 && (
+                      <div className="mt-4 space-y-1">
+                        {carimbos.map((c) => (
+                          <div key={c.id} className="flex items-center gap-2 py-1 text-xs">
+                            <Icone className="h-3 w-3 shrink-0 text-zinc-500" />
+                            <span className="flex-1 truncate text-zinc-400">
+                              {c.descricao ?? <span className="italic text-zinc-600">sem descrição</span>}
+                            </span>
+                            {c.valor && <span className="shrink-0 text-zinc-400">{moeda(c.valor)}</span>}
+                            <span className="shrink-0 text-zinc-600">{dataRelativa(c.createdAt)}</span>
+                          </div>
+                        ))}
+                        <div className="flex items-center gap-4 pt-1">
+                          {cartao.carimbos.length > 2 && (
+                            <button
+                              onClick={() => setHistoricoCompleto(!historicoCompleto)}
+                              className="text-xs text-zinc-600 transition hover:text-zinc-400"
+                            >
+                              {historicoCompleto ? "▲ menos" : `▼ ver os ${cartao.carimbos.length} carimbos`}
+                            </button>
+                          )}
+                          {cartao.selos > 0 && (
+                            <button
+                              onClick={() => desfazer(cartao.cliente.id)}
+                              disabled={loading === cartao.cliente.id}
+                              className="ml-auto text-xs text-zinc-600 transition hover:text-amber-400 disabled:opacity-50"
+                              title="Desfaz o último selo (erro de operação)"
+                            >
+                              ↩ Desfazer último selo
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          </div>
         </div>
       )}
     </div>
