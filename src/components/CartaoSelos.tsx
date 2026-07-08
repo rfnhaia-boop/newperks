@@ -55,6 +55,20 @@ export default function CartaoSelos({
       <div className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full bg-white/5 blur-3xl" />
       <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
+      {/* Brilho varrendo o cartão de tempos em tempos (só na versão cheia) */}
+      {!compacto && (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[2rem]">
+          <div
+            className="absolute top-0 bottom-0 w-1/3 animate-[cardShine_5.5s_ease-in-out_infinite]"
+            style={{
+              background:
+                "linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.12) 45%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.12) 55%, transparent 100%)",
+              transform: "skewX(-15deg)",
+            }}
+          />
+        </div>
+      )}
+
       {/* Header */}
       <div className="relative flex items-center justify-between">
         <div className="min-w-0 flex-1">

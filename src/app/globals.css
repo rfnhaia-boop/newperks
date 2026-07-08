@@ -47,3 +47,16 @@ body {
   60% { transform: scale(1.25); opacity: 1; }
   100% { transform: scale(1); }
 }
+
+/* Brilho que varre o cartão do cliente (CartaoSelos) */
+@keyframes cardShine {
+  0% { left: -40%; }
+  35% { left: 110%; }
+  100% { left: 110%; }
+}
+
+/* Flutuada suave do cartão do cliente */
+@keyframes cardFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}

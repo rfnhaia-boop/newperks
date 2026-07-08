@@ -5,6 +5,7 @@ import CartaoSelos from "@/components/CartaoSelos";
 import { getTema } from "@/lib/themes";
 import BackgroundFidelix from "@/components/BackgroundFidelix";
 import Confete from "@/components/Confete";
+import TiltCard from "@/components/TiltCard";
 
 type Dados = {
   nomeCliente: string;
@@ -216,15 +217,19 @@ export default function CartaoPessoalPage({
                       </p>
                     </div>
                   )}
-                  <CartaoSelos
-                    tema={dados.tema}
-                    nomeNegocio={dados.nomeNegocio}
-                    nomeCliente={dados.nomeCliente}
-                    selos={dados.selos}
-                    selosParaGanhar={dados.selosParaGanhar}
-                    recompensa={dados.recompensa}
-                    resgates={dados.resgates}
-                  />
+                  <div className="animate-[cardFloat_6s_ease-in-out_infinite]" style={{ perspective: "1200px" }}>
+                    <TiltCard>
+                      <CartaoSelos
+                        tema={dados.tema}
+                        nomeNegocio={dados.nomeNegocio}
+                        nomeCliente={dados.nomeCliente}
+                        selos={dados.selos}
+                        selosParaGanhar={dados.selosParaGanhar}
+                        recompensa={dados.recompensa}
+                        resgates={dados.resgates}
+                      />
+                    </TiltCard>
+                  </div>
 
                   {completo ? (
                     <div 

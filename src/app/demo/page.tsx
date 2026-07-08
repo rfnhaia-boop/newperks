@@ -4,6 +4,7 @@ import { useState } from "react";
 import CartaoSelos from "@/components/CartaoSelos";
 import Confete from "@/components/Confete";
 import BackgroundFidelix from "@/components/BackgroundFidelix";
+import TiltCard from "@/components/TiltCard";
 import { LISTA_TEMAS } from "@/lib/themes";
 
 const NEGOCIOS: Record<string, string> = {
@@ -91,15 +92,19 @@ export default function DemoPage() {
           ))}
         </div>
 
-        <CartaoSelos
-          tema={tema}
-          nomeNegocio={NEGOCIOS[tema] ?? "Sua Loja"}
-          nomeCliente="Você"
-          selos={selos}
-          selosParaGanhar={META}
-          recompensa={RECOMPENSAS[tema] ?? "1 prêmio grátis"}
-          resgates={resgates}
-        />
+        <div className="animate-[cardFloat_6s_ease-in-out_infinite]" style={{ perspective: "1200px" }}>
+          <TiltCard>
+            <CartaoSelos
+              tema={tema}
+              nomeNegocio={NEGOCIOS[tema] ?? "Sua Loja"}
+              nomeCliente="Você"
+              selos={selos}
+              selosParaGanhar={META}
+              recompensa={RECOMPENSAS[tema] ?? "1 prêmio grátis"}
+              resgates={resgates}
+            />
+          </TiltCard>
+        </div>
 
         {completo ? (
           <button

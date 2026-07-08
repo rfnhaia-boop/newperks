@@ -78,6 +78,28 @@ export default async function PainelPage() {
   const completos = cartoes.filter((c) => c.selos >= goal);
   const emUso = cartoes.filter((c) => c.selos > 0 && c.selos < goal);
 
+  // Gamificação: níveis pelo total movimentado
+  const NIVEIS = [
+    { nome: "Começando", emoji: "🌱", meta: 0 },
+    { nome: "Bronze", emoji: "🥉", meta: 1000 },
+    { nome: "Prata", emoji: "🥈", meta: 2500 },
+    { nome: "Ouro", emoji: "🥇", meta: 5000 },
+    { nome: "Platina", emoji: "💎", meta: 10000 },
+    { nome: "Diamante", emoji: "💠", meta: 25000 },
+    { nome: "Lenda", emoji: "👑", meta: 50000 },
+  ];
+  const nivelIdx = NIVEIS.reduce((acc, n, i) => (faturamento >= n.meta ? i : acc), 0);
+  const nivel = NIVEIS[nivelIdx];
+  const proximoNivel = NIVEIS[nivelIdx + 1] ?? null;
+  const pctNivel = proximoNivel
+    ? Math.min(((faturamento - nivel.meta) / (proximoNivel.meta - nivel.meta)) * 100, 100)
+    : 100;
+
+  // Dinheiro "em jogo": selos que faltam nos cartões ativos × ticket
+  const selosFaltando = cartoes.reduce((a, c) => a + Math.max(0, goal - c.selos), 0);
+  const emJogo = selosFaltando * ticket;
+  const valorCartaoCompleto = goal * ticket;
+
   // Aniversariantes dos próximos 7 dias
   const aniversariantes = cartoes
     .map((c) => ({
@@ -196,6 +218,68 @@ export default async function PainelPage() {
           </div>
         </div>
       </div>
+
+      {/* Potencial do programa — gamificação pro lojista */}
+      {ticket > 0 && (
+        <Glass className="border-amber-500/15 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-amber-300/80">Potencial do programa</p>
+              <p className="mt-1 text-sm text-zinc-300">
+                Cada cartão completo movimenta{" "}
+                <strong className="text-white">{moeda(valorCartaoCompleto)}</strong>
+                <span className="text-zinc-500"> ({goal} compras × {moeda(ticket)})</span>
+              </p>
+              {emJogo > 0 && (
+                <p className="mt-1 text-sm text-zinc-300">
+                  🔥 <strong className="text-amber-300">{moeda(emJogo)}</strong> em compras a caminho nos{" "}
+                  {cartoes.length} cartõe{cartoes.length !== 1 ? "s" : ""} ativos
+                </p>
+              )}
+            </div>
+            <div className="text-center">
+              <span className="text-4xl">{nivel.emoji}</span>
+              <p className="mt-0.5 text-xs font-bold text-white">{nivel.nome}</p>
+            </div>
+          </div>
+
+          {/* Barra até o próximo nível */}
+          <div className="mt-4">
+            <div className="mb-1.5 flex items-center justify-between text-xs">
+              {proximoNivel ? (
+                <>
+                  <span className="text-zinc-400">
+                    Próximo nível: {proximoNivel.emoji} <strong className="text-white">{proximoNivel.nome}</strong>
+                  </span>
+                  <span className="text-zinc-500">
+                    falta {moeda(Math.max(0, proximoNivel.meta - faturamento))}
+                  </span>
+                </>
+              ) : (
+                <span className="font-semibold text-amber-300">👑 Nível máximo — seu programa é lenda!</span>
+              )}
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-white/5">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all duration-700"
+                style={{ width: `${pctNivel}%` }}
+              />
+            </div>
+            {/* Marcos */}
+            <div className="mt-2 flex justify-between text-sm">
+              {NIVEIS.map((n, i) => (
+                <span
+                  key={n.nome}
+                  title={`${n.nome} — ${moeda(n.meta)}`}
+                  className={i <= nivelIdx ? "" : "opacity-30 grayscale"}
+                >
+                  {n.emoji}
+                </span>
+              ))}
+            </div>
+          </div>
+        </Glass>
+      )}
 
       {/* Linha 2 — cartões em uso / completos */}
       <div className="grid gap-4 md:grid-cols-2">

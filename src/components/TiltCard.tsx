@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 
 interface TiltCardProps {
@@ -23,6 +23,18 @@ export default function TiltCard({ children, className = "" }: TiltCardProps) {
   const glareY = useTransform(mouseYSpring, [-0.5, 0.5], ["100%", "0%"]);
 
   const [isHovered, setIsHovered] = useState(false);
+
+  // Celular: inclina com o giroscópio (Android direto; iOS pede permissão, aí ignora)
+  useEffect(() => {
+    function handleOrientation(e: DeviceOrientationEvent) {
+      if (e.gamma == null || e.beta == null) return;
+      // gamma: -90..90 (esquerda/direita) | beta: -180..180 (frente/trás, ~45° segurando)
+      x.set(Math.max(-0.5, Math.min(0.5, e.gamma / 60)));
+      y.set(Math.max(-0.5, Math.min(0.5, (e.beta - 45) / 60)));
+    }
+    window.addEventListener("deviceorientation", handleOrientation);
+    return () => window.removeEventListener("deviceorientation", handleOrientation);
+  }, [x, y]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!ref.current) return;
