@@ -8,6 +8,17 @@ function moeda(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+/** Dias até o próximo aniversário a partir de "DD/MM" (0 = hoje) */
+function diasAteAniversario(ddmm: string): number | null {
+  const [d, m] = ddmm.split("/").map(Number);
+  if (!d || !m || m > 12 || d > 31) return null;
+  const hoje = new Date();
+  const hoje0 = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  let prox = new Date(hoje.getFullYear(), m - 1, d);
+  if (prox < hoje0) prox = new Date(hoje.getFullYear() + 1, m - 1, d);
+  return Math.round((prox.getTime() - hoje0.getTime()) / 86400000);
+}
+
 /* Reusable glass card wrapper */
 function Glass({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
@@ -67,6 +78,16 @@ export default async function PainelPage() {
   const completos = cartoes.filter((c) => c.selos >= goal);
   const emUso = cartoes.filter((c) => c.selos > 0 && c.selos < goal);
 
+  // Aniversariantes dos próximos 7 dias
+  const aniversariantes = cartoes
+    .map((c) => ({
+      nome: c.cliente.nome,
+      data: c.cliente.aniversario,
+      dias: c.cliente.aniversario ? diasAteAniversario(c.cliente.aniversario) : null,
+    }))
+    .filter((a): a is { nome: string; data: string; dias: number } => a.dias !== null && a.dias <= 7)
+    .sort((a, b) => a.dias - b.dias);
+
   const topClientes = [...cartoes]
     .filter((c) => c.totalCarimbos > 0)
     .sort((a, b) => b.totalCarimbos - a.totalCarimbos)
@@ -79,6 +100,60 @@ export default async function PainelPage() {
         <h1 className="text-2xl font-bold">{lojista?.nomeNegocio}</h1>
         <p className="mt-1 text-sm text-zinc-400">Visão geral do seu programa de fidelidade</p>
       </div>
+
+      {/* Onboarding — lojista novo sem clientes ainda */}
+      {cartoes.length === 0 && (
+        <Glass className="border-violet-500/25 p-6">
+          <p className="text-lg font-bold text-white">🚀 Bem-vindo! Coloque seu cartão pra rodar em 3 passos</p>
+          <div className="mt-4 space-y-3">
+            <a href="/painel/config" className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3.5 transition hover:bg-white/10">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-600 text-sm font-bold text-white">1</span>
+              <div>
+                <p className="text-sm font-semibold text-white">Personalize seu cartão</p>
+                <p className="text-xs text-zinc-400">Escolha o tema, a recompensa e quantos selos valem o prêmio</p>
+              </div>
+              <span className="ml-auto text-zinc-500">→</span>
+            </a>
+            <a href="/painel/qrcode" className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3.5 transition hover:bg-white/10">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-600 text-sm font-bold text-white">2</span>
+              <div>
+                <p className="text-sm font-semibold text-white">Imprima o QR code</p>
+                <p className="text-xs text-zinc-400">Baixe o cartaz e cole no balcão ou no caixa</p>
+              </div>
+              <span className="ml-auto text-zinc-500">→</span>
+            </a>
+            <div className="flex items-center gap-3 rounded-xl border border-dashed border-white/10 p-3.5">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-bold text-zinc-400">3</span>
+              <div>
+                <p className="text-sm font-semibold text-zinc-300">Peça pro cliente escanear</p>
+                <p className="text-xs text-zinc-500">Ele se cadastra em 10 segundos — e aparece aqui pra você carimbar</p>
+              </div>
+            </div>
+          </div>
+        </Glass>
+      )}
+
+      {/* Aniversariantes da semana */}
+      {aniversariantes.length > 0 && (
+        <Glass className="border-pink-500/20 p-4">
+          <p className="text-sm font-semibold text-pink-300">
+            🎂 Aniversariante{aniversariantes.length !== 1 ? "s" : ""} da semana
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {aniversariantes.map((a) => (
+              <span
+                key={a.nome + a.data}
+                className="rounded-full border border-pink-500/20 bg-pink-500/10 px-3 py-1 text-xs text-pink-200"
+              >
+                {a.nome} — {a.dias === 0 ? "HOJE! 🎉" : a.dias === 1 ? "amanhã" : `em ${a.dias} dias`} ({a.data})
+              </span>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-zinc-500">
+            Manda um mimo ou desconto — aniversariante fidelizado volta o ano todo.
+          </p>
+        </Glass>
+      )}
 
       {/* Linha 1 — cartão + métricas principais */}
       <div className="grid gap-5 lg:grid-cols-[320px_1fr]">

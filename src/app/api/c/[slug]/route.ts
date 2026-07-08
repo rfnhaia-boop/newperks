@@ -20,7 +20,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (blocked) return blocked;
 
   const { slug } = await params;
-  const { nome, email, telefone, modo } = await req.json();
+  const { nome, email, telefone, modo, aniversario } = await req.json();
+
+  // Aniversário opcional no formato DD/MM
+  const nivValido =
+    typeof aniversario === "string" && /^([0-2]\d|3[01])\/(0\d|1[0-2])$/.test(aniversario.trim())
+      ? aniversario.trim()
+      : null;
 
   if (!email?.trim()) {
     return NextResponse.json({ error: "Email é obrigatório" }, { status: 400 });
@@ -58,7 +64,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   let cliente = await prisma.cliente.findUnique({ where: { email: emailNorm } });
   if (!cliente) {
     cliente = await prisma.cliente.create({
-      data: { nome: nome.trim(), email: emailNorm, telefone: telefone?.trim() || null },
+      data: {
+        nome: nome.trim(),
+        email: emailNorm,
+        telefone: telefone?.trim() || null,
+        aniversario: nivValido,
+      },
+    });
+  } else if (nivValido && !cliente.aniversario) {
+    // Cliente antigo informou o aniversário agora — aproveita e guarda
+    cliente = await prisma.cliente.update({
+      where: { id: cliente.id },
+      data: { aniversario: nivValido },
     });
   }
 

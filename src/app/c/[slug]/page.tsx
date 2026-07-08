@@ -23,6 +23,7 @@ export default function EntradaQRPage({
   );
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [aniversario, setAniversario] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<{ link: string; emailEnviado: boolean } | null>(null);
   // "cadastro" = primeira vez | "entrar" = já tem cartão nesta loja
@@ -59,7 +60,9 @@ export default function EntradaQRPage({
     const res = await fetch(`/api/c/${slug}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(modo === "entrar" ? { email, modo: "entrar" } : { nome, email }),
+      body: JSON.stringify(
+        modo === "entrar" ? { email, modo: "entrar" } : { nome, email, aniversario: aniversario || undefined }
+      ),
     });
     const data = await res.json();
     setEnviando(false);
@@ -160,6 +163,23 @@ export default function EntradaQRPage({
                   required
                 />
               </div>
+              {modo === "cadastro" && (
+                <div className="space-y-1">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Aniversário DD/MM (opcional 🎂)"
+                    value={aniversario}
+                    onChange={(e) => {
+                      // máscara simples DD/MM
+                      const d = e.target.value.replace(/\D/g, "").slice(0, 4);
+                      setAniversario(d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d);
+                    }}
+                    maxLength={5}
+                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-white placeholder-white/40 outline-none transition-all duration-300 focus:border-white/30 focus:bg-white/10 focus:ring-4 focus:ring-white/5"
+                  />
+                </div>
+              )}
 
               {erro && (
                 <p className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">

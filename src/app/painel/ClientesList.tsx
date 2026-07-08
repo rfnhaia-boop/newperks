@@ -36,13 +36,20 @@ function dataRelativa(iso: Date | string) {
   return `${Math.floor(diff / 86400)}d atrás`;
 }
 
-type SecaoKey = "prontos" | "juntando" | "novos";
+type SecaoKey = "prontos" | "juntando" | "novos" | "sumidos";
 
 const SECOES: Record<SecaoKey, { label: string; emoji: string; cor: string }> = {
   prontos: { label: "Prontos pra resgatar", emoji: "🎁", cor: "text-emerald-400" },
   juntando: { label: "Juntando selos", emoji: "⏳", cor: "text-cyan-400" },
   novos: { label: "Novos", emoji: "✨", cor: "text-violet-400" },
+  sumidos: { label: "Sumidos há 30+ dias", emoji: "😴", cor: "text-amber-400" },
 };
+
+const DIAS_SUMIDO = 30;
+
+function diasSemVisita(cartao: Cartao) {
+  return Math.floor((Date.now() - new Date(cartao.updatedAt).getTime()) / 86400000);
+}
 
 export default function ClientesList({
   cartoes,
@@ -75,12 +82,14 @@ export default function ClientesList({
   });
 
   function statusDe(cartao: Cartao): SecaoKey {
+    // Pronto pra resgatar sempre aparece como pronto, mesmo sumido
     if (cartao.selos >= selosParaGanhar) return "prontos";
+    if (diasSemVisita(cartao) >= DIAS_SUMIDO) return "sumidos";
     if (cartao.selos === 0) return "novos";
     return "juntando";
   }
 
-  const grupos: Record<SecaoKey, Cartao[]> = { prontos: [], juntando: [], novos: [] };
+  const grupos: Record<SecaoKey, Cartao[]> = { prontos: [], juntando: [], novos: [], sumidos: [] };
   for (const c of filtrados) grupos[statusDe(c)].push(c);
 
   function toggleSecao(key: SecaoKey) {
@@ -245,6 +254,27 @@ export default function ClientesList({
             </div>
           </div>
 
+          {/* Cliente sumido — chamar de volta */}
+          {!completo && diasSemVisita(cartao) >= DIAS_SUMIDO && (
+            <div className="mt-2.5 flex items-center justify-between gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2">
+              <span className="text-xs font-medium text-amber-300">
+                😴 {diasSemVisita(cartao)} dias sem visitar
+              </span>
+              {cartao.cliente.telefone && (
+                <a
+                  href={`https://wa.me/55${cartao.cliente.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                    `Oi ${cartao.cliente.nome.split(" ")[0]}! Sentimos sua falta 😊 Seu cartão fidelidade já tem ${cartao.selos} selo${cartao.selos !== 1 ? "s" : ""} — passa aqui pra continuar juntando!`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 rounded-lg bg-emerald-600/80 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-emerald-500"
+                >
+                  Chamar no WhatsApp
+                </a>
+              )}
+            </div>
+          )}
+
           {/* Último pedido */}
           {ultimoCarimbo?.descricao && !esteFormAberto && (
             <div className="mt-2.5 flex items-center gap-1.5 text-xs text-zinc-500">
@@ -330,7 +360,7 @@ export default function ClientesList({
     );
   }
 
-  const ordem: SecaoKey[] = ["prontos", "juntando", "novos"];
+  const ordem: SecaoKey[] = ["prontos", "juntando", "novos", "sumidos"];
 
   return (
     <div className="space-y-4">
