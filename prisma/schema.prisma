@@ -17,6 +17,7 @@ model Lojista {
   selosParaGanhar Int      @default(10)
   recompensa      String   @default("1 item grátis")
   ticketMedio     Float    @default(0)
+  whatsapp        String?
   ativo           Boolean  @default(true)
   createdAt       DateTime @default(now())
   resetToken      String?

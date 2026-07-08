@@ -40,3 +40,10 @@ body {
 .glass-card {
   @apply bg-zinc-900/60 backdrop-blur-xl border border-white/5 shadow-2xl;
 }
+
+/* Selo recém-carimbado entra com bounce (CartaoSelos) */
+@keyframes seloPop {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(1); }
+}

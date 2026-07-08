@@ -7,9 +7,14 @@ export async function PUT(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
-  const { tema, selosParaGanhar, recompensa, nomeNegocio, ticketMedio } = await req.json();
+  const { tema, selosParaGanhar, recompensa, nomeNegocio, ticketMedio, whatsapp } = await req.json();
 
   const data: Record<string, unknown> = {};
+  if (typeof whatsapp === "string") {
+    // Guarda só dígitos; vazio limpa o campo
+    const digitos = whatsapp.replace(/\D/g, "").slice(0, 15);
+    data.whatsapp = digitos || null;
+  }
   if (tema && tema in TEMAS) data.tema = tema;
   if (typeof selosParaGanhar === "number" && selosParaGanhar >= 1 && selosParaGanhar <= 20)
     data.selosParaGanhar = selosParaGanhar;

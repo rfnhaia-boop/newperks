@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback, use } from "react";
+import { useEffect, useState, useCallback, useRef, use } from "react";
 import CartaoSelos from "@/components/CartaoSelos";
 import { getTema } from "@/lib/themes";
 import BackgroundFidelix from "@/components/BackgroundFidelix";
+import Confete from "@/components/Confete";
 
 type Dados = {
   nomeCliente: string;
@@ -14,6 +15,7 @@ type Dados = {
   selosParaGanhar: number;
   recompensa: string;
   slug: string;
+  whatsapp: string | null;
 };
 
 export default function CartaoPessoalPage({
@@ -26,6 +28,8 @@ export default function CartaoPessoalPage({
   const [estado, setEstado] = useState<"carregando" | "ok" | "naoencontrado">("carregando");
   const [mostrarCapa, setMostrarCapa] = useState(true);
   const [abaAtiva, setAbaAtiva] = useState<"cartao" | "beneficios" | "sobre">("cartao");
+  const [celebrar, setCelebrar] = useState(false);
+  const selosAnteriores = useRef<number | null>(null);
 
   const carregar = useCallback(async () => {
     const res = await fetch(`/api/cartao/${token}`);
@@ -33,8 +37,22 @@ export default function CartaoPessoalPage({
       setEstado("naoencontrado");
       return;
     }
-    setDados(await res.json());
+    const d: Dados = await res.json();
+    setDados(d);
     setEstado("ok");
+
+    // Celebra ao vivo: selo novo vibra; completar o cartão solta confete
+    const antes = selosAnteriores.current;
+    selosAnteriores.current = d.selos;
+    if (antes !== null && d.selos > antes) {
+      if (d.selos >= d.selosParaGanhar) {
+        setCelebrar(true);
+        navigator.vibrate?.([100, 60, 100, 60, 250]);
+        setTimeout(() => setCelebrar(false), 5000);
+      } else {
+        navigator.vibrate?.(60);
+      }
+    }
   }, [token]);
 
   useEffect(() => {
@@ -77,6 +95,7 @@ export default function CartaoPessoalPage({
     <div className="relative min-h-screen px-4 py-8 flex items-center justify-center overflow-hidden">
       {/* Dynamic themed background with floating 3D elements */}
       <BackgroundFidelix temaId={dados?.tema} />
+      {celebrar && <Confete />}
 
       <div className="relative w-full max-w-md z-10">
         {mostrarCapa ? (
@@ -335,6 +354,20 @@ export default function CartaoPessoalPage({
                       </div>
                     </div>
                   </div>
+
+                  {dados.whatsapp && (
+                    <a
+                      href={`https://wa.me/${dados.whatsapp.length <= 11 ? "55" + dados.whatsapp : dados.whatsapp}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 font-bold text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:bg-emerald-500 active:translate-y-0"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+                        <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.2 1.2-1.7 1.2-.4.1-1 .1-1.6-.1-.4-.1-.9-.3-1.5-.6-2.6-1.1-4.3-3.8-4.4-4-.1-.2-1-1.4-1-2.6 0-1.2.6-1.8.9-2 .2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.4l.9 2.1c.1.2.1.4 0 .5l-.4.6-.5.5c-.1.1-.2.3-.1.5.1.2.6 1 1.3 1.7.9.8 1.7 1.1 2 1.2.2.1.4.1.5-.1l.7-.9c.2-.2.3-.2.6-.1l2 .9c.3.1.4.2.5.4 0 .1 0 .7-.2 1.2z" />
+                      </svg>
+                      <span>Chamar no WhatsApp</span>
+                    </a>
+                  )}
 
                   <div className="border-t border-white/10 pt-4 text-center">
                     <a

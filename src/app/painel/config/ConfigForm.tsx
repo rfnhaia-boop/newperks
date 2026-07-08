@@ -11,6 +11,7 @@ type Config = {
   selosParaGanhar: number;
   recompensa: string;
   ticketMedio: number;
+  whatsapp: string;
 };
 
 export default function ConfigForm({ inicial }: { inicial: Config }) {
@@ -139,6 +140,23 @@ export default function ConfigForm({ inicial }: { inicial: Config }) {
         />
         <p className="mt-1 text-xs text-zinc-500">
           Usado pra estimar seu faturamento no painel (carimbos × ticket médio).
+        </p>
+      </div>
+
+      {/* WhatsApp */}
+      <div>
+        <label className="mb-2 block text-sm font-medium text-zinc-300">
+          WhatsApp do negócio
+        </label>
+        <input
+          type="tel"
+          value={cfg.whatsapp}
+          onChange={(e) => setCfg({ ...cfg, whatsapp: e.target.value })}
+          placeholder="Ex: 11 91234-5678"
+          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-white outline-none backdrop-blur-md transition focus:border-violet-500/50 focus:bg-white/10"
+        />
+        <p className="mt-1 text-xs text-zinc-500">
+          Aparece como botão &quot;Chamar no WhatsApp&quot; no cartão do cliente. Deixe vazio pra não mostrar.
         </p>
       </div>
 

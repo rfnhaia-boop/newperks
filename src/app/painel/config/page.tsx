@@ -12,6 +12,7 @@ export default async function ConfigPage() {
       selosParaGanhar: true,
       recompensa: true,
       ticketMedio: true,
+      whatsapp: true,
     },
   });
 
@@ -30,6 +31,7 @@ export default async function ConfigPage() {
           selosParaGanhar: lojista?.selosParaGanhar ?? 10,
           recompensa: lojista?.recompensa ?? "",
           ticketMedio: lojista?.ticketMedio ?? 0,
+          whatsapp: lojista?.whatsapp ?? "",
         }}
       />
     </div>

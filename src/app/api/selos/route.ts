@@ -39,6 +39,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ cartao: atualizado, resgatou: true, recompensa: lojista.recompensa });
   }
 
+  // Desfaz o último carimbo (erro de operação no balcão)
+  if (acao === "desfazer") {
+    if (cartao.selos === 0) {
+      return NextResponse.json({ error: "Nada para desfazer" }, { status: 400 });
+    }
+    const ultimo = await prisma.carimbo.findFirst({
+      where: { cartaoId: cartao.id },
+      orderBy: { createdAt: "desc" },
+    });
+    const [atualizado] = await prisma.$transaction([
+      prisma.cartao.update({
+        where: { id: cartao.id },
+        data: {
+          selos: cartao.selos - 1,
+          totalCarimbos: Math.max(0, cartao.totalCarimbos - 1),
+        },
+        include: { cliente: true },
+      }),
+      ...(ultimo ? [prisma.carimbo.delete({ where: { id: ultimo.id } })] : []),
+    ]);
+    return NextResponse.json({ cartao: atualizado, desfez: true });
+  }
+
   // acao === "carimbar"
   if (cartao.selos >= lojista.selosParaGanhar) {
     return NextResponse.json({ error: "Cartão completo — resgate antes de continuar" }, { status: 400 });

@@ -139,6 +139,20 @@ export default function ClientesList({
     router.refresh();
   }
 
+  async function desfazer(clienteId: string) {
+    setLoading(clienteId);
+    const res = await fetch("/api/selos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clienteId, acao: "desfazer" }),
+    });
+    const data = await res.json();
+    setLoading(null);
+    if (res.ok) toast(`Último selo de ${data.cartao.cliente.nome} desfeito`, "sucesso");
+    else toast(data.error ?? "Erro ao desfazer", "erro");
+    router.refresh();
+  }
+
   function renderCard(cartao: Cartao) {
     const completo = cartao.selos >= selosParaGanhar;
     const pct = Math.min((cartao.selos / selosParaGanhar) * 100, 100);
@@ -274,16 +288,29 @@ export default function ClientesList({
             </div>
           )}
 
-          {/* Histórico */}
-          {cartao.carimbos.length > 0 && (
-            <button
-              onClick={() => setHistoricoAberto(esteHistorico ? null : cartao.cliente.id)}
-              className="mt-2.5 flex w-full items-center gap-1 text-xs text-zinc-600 transition hover:text-zinc-400"
-            >
-              <span>{esteHistorico ? "▲" : "▼"}</span>
-              <span>{cartao.carimbos.length} carimbo{cartao.carimbos.length !== 1 ? "s" : ""} no histórico</span>
-            </button>
-          )}
+          {/* Histórico + desfazer */}
+          <div className="mt-2.5 flex items-center gap-3">
+            {cartao.carimbos.length > 0 && (
+              <button
+                onClick={() => setHistoricoAberto(esteHistorico ? null : cartao.cliente.id)}
+                className="flex items-center gap-1 text-xs text-zinc-600 transition hover:text-zinc-400"
+              >
+                <span>{esteHistorico ? "▲" : "▼"}</span>
+                <span>{cartao.carimbos.length} carimbo{cartao.carimbos.length !== 1 ? "s" : ""} no histórico</span>
+              </button>
+            )}
+            {cartao.selos > 0 && (
+              <button
+                onClick={() => desfazer(cartao.cliente.id)}
+                disabled={loading === cartao.cliente.id}
+                className="ml-auto flex items-center gap-1 text-xs text-zinc-600 transition hover:text-amber-400 disabled:opacity-50"
+                title="Desfaz o último selo (erro de operação)"
+              >
+                <span>↩</span>
+                <span>Desfazer selo</span>
+              </button>
+            )}
+          </div>
           {esteHistorico && (
             <div className="mt-2 space-y-1 rounded-xl border border-white/5 bg-white/[0.03] p-2">
               {cartao.carimbos.map((c) => (

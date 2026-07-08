@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { getTema } from "@/lib/themes";
 
 type Props = {
@@ -27,6 +28,13 @@ export default function CartaoSelos({
   const t = getTema(tema);
   const { Icone } = t;
   const completo = selos >= selosParaGanhar;
+
+  // Selos que acabaram de entrar ganham bounce (compara com a render anterior)
+  const prevSelosRef = useRef(selos);
+  useEffect(() => {
+    prevSelosRef.current = selos;
+  }, [selos]);
+  const selosAntes = prevSelosRef.current;
   const faltam = Math.max(0, selosParaGanhar - selos);
   const progresso = Math.min((selos / selosParaGanhar) * 100, 100);
 
@@ -81,6 +89,7 @@ export default function CartaoSelos({
       >
         {Array.from({ length: selosParaGanhar }).map((_, i) => {
           const ativo = i < selos;
+          const recemCarimbado = ativo && selos > selosAntes && i >= selosAntes;
           return (
             <div
               key={i}
@@ -88,7 +97,7 @@ export default function CartaoSelos({
                 ativo
                   ? "bg-white/90 shadow-lg scale-100"
                   : "bg-white/10 scale-95"
-              }`}
+              } ${recemCarimbado ? "animate-[seloPop_0.7s_cubic-bezier(0.34,1.56,0.64,1)]" : ""}`}
             >
               {ativo ? (
                 <Icone className="h-[45%] w-[45%] text-zinc-800" />
