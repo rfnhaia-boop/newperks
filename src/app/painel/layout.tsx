@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import PainelNav from "./PainelNav";
 import BackgroundFidelix from "@/components/BackgroundFidelix";
 import Toaster from "@/components/Toaster";
+import { LogOut, Star } from "lucide-react";
 
 export default async function PainelLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -23,22 +24,22 @@ export default async function PainelLayout({ children }: { children: React.React
     .toUpperCase() ?? "?";
 
   return (
-    <div className="relative min-h-screen bg-zinc-950 text-white">
+    <div className="relative min-h-screen bg-zinc-950 text-white font-sans">
       {/* Dynamic themed background — changes per lojista theme */}
       <BackgroundFidelix temaId={lojista?.tema} />
 
-      <header className="sticky top-0 z-50 border-b border-white/10"
-        style={{
-          background: "rgba(9, 9, 11, 0.6)",
-          backdropFilter: "blur(20px) saturate(180%)",
-          WebkitBackdropFilter: "blur(20px) saturate(180%)",
-        }}
-      >
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-3">
+      <header className="sticky top-0 z-50 border-b border-white/5 bg-zinc-950/70 backdrop-blur-2xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
+          
           {/* Logo */}
-          <div className="flex min-w-0 shrink-0 flex-col">
-            <span className="text-lg font-bold leading-none text-violet-400">NewPerks</span>
-            <span className="mt-0.5 truncate text-xs text-zinc-500">{session.user?.name}</span>
+          <div className="flex shrink-0 items-center gap-3 w-48">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 font-bold shadow-lg shadow-violet-500/20">
+              <Star className="h-5 w-5 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-lg font-bold leading-none tracking-tight text-zinc-100">NewPerks</span>
+              <span className="mt-1 truncate text-xs font-medium text-violet-400">{session.user?.name}</span>
+            </div>
           </div>
 
           {/* Nav centralizada */}
@@ -47,23 +48,24 @@ export default async function PainelLayout({ children }: { children: React.React
           </div>
 
           {/* Direita: avatar + sair */}
-          <div className="flex shrink-0 items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-600/20 text-xs font-bold text-violet-300 ring-1 ring-violet-500/30">
+          <div className="flex shrink-0 items-center gap-4 w-48 justify-end">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800 text-sm font-bold text-zinc-300 ring-2 ring-white/10 shadow-inner">
               {iniciais}
             </div>
             <form action={async () => { "use server"; await signOut({ redirectTo: "/login" }); }}>
               <button
                 type="submit"
-                className="rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:bg-white/10 hover:text-white"
+                className="group flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-zinc-400 transition-all hover:bg-red-500/10 hover:text-red-400"
               >
-                Sair
+                <span className="hidden sm:inline">Sair</span>
+                <LogOut className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </button>
             </form>
           </div>
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto max-w-5xl px-6 py-8">{children}</main>
+      <main className="relative z-10 mx-auto max-w-6xl px-6 py-10">{children}</main>
       <Toaster />
     </div>
   );

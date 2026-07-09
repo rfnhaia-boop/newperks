@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getTema } from "@/lib/themes";
 import { toast } from "@/components/Toaster";
@@ -109,6 +109,19 @@ export default function ClientesList({
 
   const cartaoAberto = aberto ? cartoes.find((c) => c.cliente.id === aberto) ?? null : null;
 
+  // Popup aberto: ESC fecha e o scroll da página trava
+  useEffect(() => {
+    if (!aberto) return;
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setAberto(null);
+    window.addEventListener("keydown", esc);
+    const scrollAnterior = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", esc);
+      document.body.style.overflow = scrollAnterior;
+    };
+  }, [aberto]);
+
   function abrirPopup(clienteId: string) {
     setAberto(clienteId);
     setDescricao("");
@@ -118,14 +131,19 @@ export default function ClientesList({
 
   async function chamarApi(clienteId: string, body: Record<string, unknown>) {
     setLoading(clienteId);
-    const res = await fetch("/api/selos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clienteId, ...body }),
-    });
-    const data = await res.json();
-    setLoading(null);
-    return { res, data };
+    try {
+      const res = await fetch("/api/selos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clienteId, ...body }),
+      });
+      const data = await res.json().catch(() => ({}));
+      return { res, data };
+    } catch {
+      return { res: { ok: false } as Response, data: { error: "Erro de conexão. Tente de novo." } };
+    } finally {
+      setLoading(null);
+    }
   }
 
   async function carimbar(clienteId: string) {

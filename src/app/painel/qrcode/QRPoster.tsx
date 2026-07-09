@@ -80,6 +80,43 @@ export default function QRPoster({
 
       <p className="break-all text-center font-mono text-xs text-zinc-500">{url}</p>
 
+      {/* Versão de impressão — clara, econômica de tinta, legível em papel */}
+      <div id="poster-print" className="hidden">
+        <div
+          style={{
+            width: "560px",
+            margin: "0 auto",
+            padding: "48px 40px",
+            textAlign: "center",
+            background: "#ffffff",
+            color: "#18181b",
+            border: "3px solid #18181b",
+            borderRadius: "24px",
+            fontFamily: "system-ui, sans-serif",
+          }}
+        >
+          <div style={{ fontSize: "52px", lineHeight: 1 }}>{t.emoji}</div>
+          <p style={{ margin: "16px 0 0", fontSize: "13px", fontWeight: 700, letterSpacing: "0.25em", textTransform: "uppercase", color: "#52525b" }}>
+            Cartão Fidelidade
+          </p>
+          <h2 style={{ margin: "4px 0 0", fontSize: "34px", fontWeight: 800 }}>{nomeNegocio}</h2>
+
+          {qr && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={qr} alt="QR Code" style={{ width: "300px", height: "300px", margin: "24px auto 0", display: "block" }} />
+          )}
+
+          <p style={{ margin: "24px 0 0", fontSize: "22px", fontWeight: 800 }}>📲 Aponte a câmera do celular</p>
+          <p style={{ margin: "8px 0 0", fontSize: "16px", color: "#3f3f46" }}>
+            Junte selos a cada compra e ganhe:
+          </p>
+          <p style={{ margin: "4px 0 0", fontSize: "20px", fontWeight: 800 }}>{recompensa}</p>
+          <p style={{ margin: "20px 0 0", fontSize: "11px", color: "#a1a1aa", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+            powered by NewPerks
+          </p>
+        </div>
+      </div>
+
       {/* Ações (não imprimem) */}
       <div className="no-print flex justify-center gap-3">
         <button
@@ -99,8 +136,10 @@ export default function QRPoster({
       <style>{`
         @media print {
           body * { visibility: hidden; }
-          #poster, #poster * { visibility: visible; }
-          #poster { position: absolute; left: 50%; top: 40px; transform: translateX(-50%); }
+          #poster { display: none !important; }
+          #poster-print { display: block !important; }
+          #poster-print, #poster-print * { visibility: visible; }
+          #poster-print { position: absolute; left: 50%; top: 40px; transform: translateX(-50%); }
           .no-print { display: none !important; }
         }
       `}</style>

@@ -76,6 +76,9 @@ export default function LandingPageContent() {
               Começar Agora
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </a>
+            <a href="/demo" className="flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 px-8 py-4 font-bold text-white backdrop-blur-md transition-all hover:scale-105 hover:bg-white/10">
+              🎮 Testar demonstração
+            </a>
           </motion.div>
           
           <motion.div variants={fadeInUp} className="mt-12 flex items-center gap-4 text-sm text-zinc-500">

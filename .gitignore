@@ -47,3 +47,6 @@ next-env.d.ts
 # banco local sqlite legado + logs de diagnóstico
 dev.db
 *.log
+
+# outro projeto clonado aqui por engano — mover pra Projetos/
+barbearia-repo/

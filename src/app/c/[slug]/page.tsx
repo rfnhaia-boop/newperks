@@ -57,16 +57,23 @@ export default function EntradaQRPage({
     if (modo === "cadastro" && !nome.trim()) return;
     setErro(null);
     setEnviando(true);
-    const res = await fetch(`/api/c/${slug}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(
-        modo === "entrar" ? { email, modo: "entrar" } : { nome, email, aniversario: aniversario || undefined }
-      ),
-    });
-    const data = await res.json();
+    let res: Response, data: { link?: string; emailEnviado?: boolean; error?: string };
+    try {
+      res = await fetch(`/api/c/${slug}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          modo === "entrar" ? { email, modo: "entrar" } : { nome, email, aniversario: aniversario || undefined }
+        ),
+      });
+      data = await res.json().catch(() => ({}));
+    } catch {
+      setEnviando(false);
+      setErro("Erro de conexão. Tente de novo.");
+      return;
+    }
     setEnviando(false);
-    if (res.ok) {
+    if (res.ok && data.link) {
       const token = data.link.split("/cartao/")[1];
       localStorage.setItem(chave, token);
       if (modo === "entrar") {
@@ -74,7 +81,7 @@ export default function EntradaQRPage({
         window.location.href = data.link;
         return;
       }
-      setResultado({ link: data.link, emailEnviado: data.emailEnviado });
+      setResultado({ link: data.link, emailEnviado: data.emailEnviado ?? false });
       setEstado("enviado");
     } else {
       setErro(data.error ?? "Algo deu errado. Tente de novo.");
