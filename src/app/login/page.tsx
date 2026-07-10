@@ -16,12 +16,17 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setErro("");
-    const res = await signIn("credentials", { email, senha, redirect: false });
-    if (res?.error) {
-      setErro("Email ou senha incorretos");
+    try {
+      const res = await signIn("credentials", { email, senha, redirect: false });
+      if (res?.error) {
+        setErro("Email ou senha incorretos");
+        setLoading(false);
+      } else {
+        router.push("/painel");
+      }
+    } catch {
+      setErro("Erro de conexão. Tente de novo.");
       setLoading(false);
-    } else {
-      router.push("/painel");
     }
   }
 
@@ -38,7 +43,8 @@ function LoginForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-white/10 p-6" style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)' }}>
+      <form onSubmit={handleSubmit} className="relative overflow-hidden space-y-4 rounded-3xl border border-white/10 p-8 shadow-[0_24px_50px_-12px_rgba(0,0,0,0.5)]" style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)' }}>
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
         <div>
           <label className="mb-1 block text-sm text-zinc-400">Email</label>
           <input

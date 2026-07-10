@@ -60,3 +60,18 @@ body {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-7px); }
 }
+
+/* Popup fade + scale */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Safe area for bottom bar on iOS */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}

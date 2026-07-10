@@ -30,7 +30,8 @@ export default function CartaoPessoalPage({
   const { token } = use(params);
   const [dados, setDados] = useState<Dados | null>(null);
   const [estado, setEstado] = useState<"carregando" | "ok" | "naoencontrado">("carregando");
-  const [mostrarCapa, setMostrarCapa] = useState(true);
+  const jaVisitou = typeof window !== "undefined" && localStorage.getItem(`newperks:visited:${token}`);
+  const [mostrarCapa, setMostrarCapa] = useState(!jaVisitou);
   const [abaAtiva, setAbaAtiva] = useState<"cartao" | "beneficios" | "sobre">("cartao");
   const [celebrar, setCelebrar] = useState(false);
   const [resgatado, setResgatado] = useState(false);
@@ -74,11 +75,16 @@ export default function CartaoPessoalPage({
     carregar();
   }, [carregar]);
 
-  // Atualiza ao vivo a cada 8s (vê o selo entrar na hora)
+  // Atualiza ao vivo a cada 8s — pausa quando aba perde foco (economiza bateria)
   useEffect(() => {
     if (estado !== "ok") return;
-    const id = setInterval(carregar, 8000);
-    return () => clearInterval(id);
+    let id: ReturnType<typeof setInterval> | null = null;
+    function iniciar() { if (!id) id = setInterval(carregar, 8000); }
+    function parar() { if (id) { clearInterval(id); id = null; } }
+    function onVis() { document.hidden ? parar() : iniciar(); }
+    iniciar();
+    document.addEventListener("visibilitychange", onVis);
+    return () => { parar(); document.removeEventListener("visibilitychange", onVis); };
   }, [estado, carregar]);
 
   const tema = getTema(dados?.tema);
@@ -144,7 +150,7 @@ export default function CartaoPessoalPage({
             <div className="mt-8 relative group">
               <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-white/30 to-white/5 opacity-50 blur-lg transition duration-500 group-hover:opacity-80" />
               <button
-                onClick={() => setMostrarCapa(false)}
+                onClick={() => { setMostrarCapa(false); localStorage.setItem(`newperks:visited:${token}`, "1"); }}
                 className="relative w-full rounded-2xl bg-white py-4 font-bold text-zinc-950 shadow-xl transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/95 active:translate-y-0"
               >
                 Acessar meu Cartão

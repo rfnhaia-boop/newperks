@@ -279,12 +279,12 @@ export default function ClientesList({
       {/* Popup do cliente */}
       {cartaoAberto && (
         <div
-          className="fixed inset-0 z-[95] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[95] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out]"
           onClick={() => setAberto(null)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md overflow-hidden rounded-3xl border border-white/15 shadow-2xl"
+            className="w-full max-w-md overflow-hidden rounded-3xl border border-white/15 shadow-2xl animate-[popIn_0.2s_cubic-bezier(0.16,1,0.3,1)]"
             style={{
               background: "rgba(24, 24, 27, 0.92)",
               backdropFilter: "blur(30px) saturate(160%)",

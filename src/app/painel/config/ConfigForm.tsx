@@ -123,7 +123,7 @@ export default function ConfigForm({ inicial }: { inicial: Config }) {
           value={cfg.recompensa}
           onChange={(e) => setCfg({ ...cfg, recompensa: e.target.value })}
           placeholder="Ex: 1 café grátis, 50% de desconto..."
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-violet-500"
+          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-white outline-none backdrop-blur-md transition focus:border-violet-500/50 focus:bg-white/10"
         />
       </div>
 

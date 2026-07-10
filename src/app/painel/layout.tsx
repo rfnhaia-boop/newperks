@@ -29,33 +29,33 @@ export default async function PainelLayout({ children }: { children: React.React
       <BackgroundFidelix temaId={lojista?.tema} />
 
       <header className="sticky top-0 z-50 border-b border-white/5 bg-zinc-950/70 backdrop-blur-2xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
-          
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 md:gap-4 md:px-6 md:py-4">
+
           {/* Logo */}
-          <div className="flex shrink-0 items-center gap-3 w-48">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 font-bold shadow-lg shadow-violet-500/20">
-              <Star className="h-5 w-5 text-white" />
+          <div className="flex shrink-0 items-center gap-2.5 md:gap-3 md:w-48">
+            <div className="flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 font-bold shadow-lg shadow-violet-500/20">
+              <Star className="h-4 w-4 md:h-5 md:w-5 text-white" />
             </div>
             <div className="flex flex-col">
-              <span className="text-lg font-bold leading-none tracking-tight text-zinc-100">NewPerks</span>
-              <span className="mt-1 truncate text-xs font-medium text-violet-400">{session.user?.name}</span>
+              <span className="text-base md:text-lg font-bold leading-none tracking-tight text-zinc-100">NewPerks</span>
+              <span className="mt-0.5 truncate text-[10px] md:text-xs font-medium text-violet-400">{session.user?.name}</span>
             </div>
           </div>
 
-          {/* Nav centralizada */}
-          <div className="flex flex-1 justify-center">
+          {/* Nav centralizada — só desktop (mobile usa bottom bar) */}
+          <div className="hidden md:flex flex-1 justify-center">
             <PainelNav />
           </div>
 
           {/* Direita: avatar + sair */}
-          <div className="flex shrink-0 items-center gap-4 w-48 justify-end">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800 text-sm font-bold text-zinc-300 ring-2 ring-white/10 shadow-inner">
+          <div className="flex shrink-0 items-center gap-2 md:gap-4 md:w-48 justify-end">
+            <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800 text-sm font-bold text-zinc-300 ring-2 ring-white/10 shadow-inner">
               {iniciais}
             </div>
             <form action={async () => { "use server"; await signOut({ redirectTo: "/login" }); }}>
               <button
                 type="submit"
-                className="group flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-zinc-400 transition-all hover:bg-red-500/10 hover:text-red-400"
+                className="group flex items-center gap-2 rounded-xl px-3 py-2 md:px-4 text-sm font-medium text-zinc-400 transition-all hover:bg-red-500/10 hover:text-red-400"
               >
                 <span className="hidden sm:inline">Sair</span>
                 <LogOut className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -65,7 +65,7 @@ export default async function PainelLayout({ children }: { children: React.React
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto max-w-6xl px-6 py-10">{children}</main>
+      <main className="relative z-10 mx-auto max-w-6xl px-4 py-6 pb-24 md:px-6 md:py-10 md:pb-10">{children}</main>
       <Toaster />
     </div>
   );
