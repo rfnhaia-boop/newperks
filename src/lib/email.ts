@@ -88,3 +88,57 @@ export async function enviarLinkCartao(opts: {
     return { enviado: false };
   }
 }
+
+export async function enviarLinkCarteira(opts: { para: string; nome: string; link: string }): Promise<{ enviado: boolean }> {
+  const { para, nome, link } = opts;
+  if (!resend) {
+    console.log(`[email:simulado] carteira -> ${para} | ${link}`);
+    return { enviado: false };
+  }
+  try {
+    await resend.emails.send({
+      from, to: para, subject: "Acesse sua carteira — NewPerks",
+      html: `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:24px;background:#18181b;color:#fff;border-radius:16px"><p style="color:#a1a1aa;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase">NewPerks</p><h1 style="margin:0 0 12px;font-size:26px">Olá, ${esc(nome)}!</h1><p style="color:#d4d4d8;line-height:1.6">Use o botão abaixo para ver todos os seus cartões de fidelidade em um só lugar.</p><a href="${esc(link)}" style="display:inline-block;margin:16px 0;padding:13px 22px;background:#e9ff65;color:#18181b;text-decoration:none;border-radius:10px;font-weight:700">Abrir minha carteira</a><p style="color:#71717a;font-size:13px">Por segurança, este link expira em 15 minutos. Se não foi você, ignore este email.</p></div>`,
+    });
+    return { enviado: true };
+  } catch (e) {
+    console.error("[email] falha ao enviar carteira:", e);
+    return { enviado: false };
+  }
+}
+
+export async function enviarCodigoCarteira(opts: { para: string; nome: string; codigo: string }): Promise<{ enviado: boolean }> {
+  const { para, nome, codigo } = opts;
+  if (!resend) {
+    console.log(`[email:simulado] código de carteira para ${para}: ${codigo}`);
+    return { enviado: false };
+  }
+  try {
+    await resend.emails.send({
+      from, to: para, subject: "Seu código de acesso — NewPerks",
+      html: `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:24px;background:#18181b;color:#fff;border-radius:16px"><p style="color:#a1a1aa;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase">NewPerks</p><h1 style="margin:0 0 12px;font-size:26px">Olá, ${esc(nome)}!</h1><p style="color:#d4d4d8;line-height:1.6">Use este código para abrir sua carteira:</p><p style="margin:20px 0;padding:16px;border-radius:12px;background:#27272a;color:#e9ff65;font-size:30px;font-weight:800;letter-spacing:8px;text-align:center">${esc(codigo)}</p><p style="color:#71717a;font-size:13px">Ele expira em 10 minutos e só pode ser usado uma vez. Se não foi você, ignore este email.</p></div>`,
+    });
+    return { enviado: true };
+  } catch (e) {
+    console.error("[email] falha ao enviar código da carteira:", e);
+    return { enviado: false };
+  }
+}
+
+export async function enviarEmailAutomacao(opts: { para: string; nome: string; negocio: string; assunto: string; mensagem: string }): Promise<{ enviado: boolean }> {
+  const { para, nome, negocio, assunto, mensagem } = opts;
+  if (!resend) {
+    console.log(`[email:simulado] automação -> ${para} | ${assunto}`);
+    return { enviado: false };
+  }
+  try {
+    await resend.emails.send({
+      from, to: para, subject: assunto,
+      html: `<div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;padding:28px;background:#18181b;color:#fff;border-radius:18px"><p style="margin:0 0 8px;color:#e9ff65;font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase">${esc(negocio)}</p><h1 style="margin:0 0 16px;font-size:26px">Olá, ${esc(nome)}!</h1><p style="margin:0;color:#d4d4d8;line-height:1.7;white-space:pre-line">${esc(mensagem)}</p><a href="${esc(process.env.NEXTAUTH_URL || "http://localhost:3001")}/carteira" style="display:inline-block;margin:22px 0 8px;padding:13px 20px;background:#e9ff65;color:#18181b;text-decoration:none;border-radius:11px;font-weight:800">Abrir meus cartões</a><p style="margin:14px 0 0;color:#71717a;font-size:12px;line-height:1.5">Você recebeu este aviso porque autorizou comunicações do programa de fidelidade.</p></div>`,
+    });
+    return { enviado: true };
+  } catch (e) {
+    console.error("[email] falha ao enviar automação:", e);
+    return { enviado: false };
+  }
+}

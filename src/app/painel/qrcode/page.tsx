@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import QRPoster from "./QRPoster";
+import { QrCode } from "lucide-react";
 
 export default async function QRCodePage() {
   const session = await auth();
@@ -13,13 +14,19 @@ export default async function QRCodePage() {
   const url = `${base}/c/${lojista?.slug}`;
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Seu QR Code</h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Imprima e deixe no balcão. O cliente escaneia e começa a juntar selos.
-        </p>
+    <div className="mx-auto max-w-xl space-y-8">
+      <div className="flex items-center gap-4">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 shadow-lg shadow-violet-500/20">
+          <QrCode className="h-7 w-7 text-white" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-white">Seu QR Code</h1>
+          <p className="mt-1 text-sm text-zinc-400">
+            Imprima e deixe no balcão. O cliente escaneia e começa a juntar selos.
+          </p>
+        </div>
       </div>
+      
       <QRPoster
         url={url}
         nomeNegocio={lojista?.nomeNegocio ?? ""}

@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { getTema } from "@/lib/themes";
+import { Printer, Download, Share2, Copy, Check, QrCode } from "lucide-react";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 
 export default function QRPoster({
   url,
@@ -16,8 +18,36 @@ export default function QRPoster({
   recompensa: string;
 }) {
   const [qr, setQr] = useState<string>("");
+  const [copiado, setCopiado] = useState(false);
   const posterRef = useRef<HTMLDivElement>(null);
   const t = getTema(tema);
+
+  // Tilt Effect Hooks
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const mouseXSpring = useSpring(x, { stiffness: 300, damping: 40 });
+  const mouseYSpring = useSpring(y, { stiffness: 300, damping: 40 });
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["10deg", "-10deg"]);
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-10deg", "10deg"]);
+  const glareX = useTransform(mouseXSpring, [-0.5, 0.5], ["100%", "-100%"]);
+  const glareY = useTransform(mouseYSpring, [-0.5, 0.5], ["100%", "-100%"]);
+
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const xPct = mouseX / width - 0.5;
+    const yPct = mouseY / height - 0.5;
+    x.set(xPct);
+    y.set(yPct);
+  }
+
+  function handleMouseLeave() {
+    x.set(0);
+    y.set(0);
+  }
 
   useEffect(() => {
     QRCode.toDataURL(url, {
@@ -40,45 +70,109 @@ export default function QRPoster({
     a.click();
   }
 
+  async function copiarLink() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2200);
+    } catch {
+      window.prompt("Copie este link:", url);
+    }
+  }
+
+  async function compartilhar() {
+    if (navigator.share) {
+      await navigator.share({
+        title: `Cartão fidelidade — ${nomeNegocio}`,
+        text: `Entre no cartão fidelidade da ${nomeNegocio} e comece a juntar selos!`,
+        url,
+      });
+      return;
+    }
+    await copiarLink();
+  }
+
   return (
-    <div className="space-y-4">
-      {/* Poster imprimível */}
-      <div
-        ref={posterRef}
-        id="poster"
-        className="mx-auto flex max-w-sm flex-col items-center gap-5 rounded-3xl border border-white/15 p-8 text-center shadow-2xl"
-        style={{
-          background: "rgba(255, 255, 255, 0.06)",
-          backdropFilter: "blur(24px) saturate(180%)",
-          WebkitBackdropFilter: "blur(24px) saturate(180%)",
-        }}
-      >
-        <span className="text-5xl">{t.emoji}</span>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-white/70">
-            Cartão Fidelidade
-          </p>
-          <h2 className="text-2xl font-extrabold text-white">{nomeNegocio}</h2>
-        </div>
+    <div className="space-y-6">
+      {/* 3D Tilt Wrapper */}
+      <div className="perspective-1000">
+        <motion.div
+          id="poster"
+          ref={posterRef}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          style={{
+            rotateX,
+            rotateY,
+            transformStyle: "preserve-3d",
+          }}
+          className="group relative mx-auto flex max-w-sm flex-col items-center gap-6 rounded-[2rem] border border-white/10 p-10 text-center shadow-2xl shadow-violet-500/10 transition-shadow hover:shadow-violet-500/30 overflow-hidden"
+        >
+          {/* Glassmorphism bg */}
+          <div className="absolute inset-0 -z-10 bg-zinc-900/60 backdrop-blur-2xl" />
+          
+          {/* Glare effect */}
+          <motion.div
+            className="pointer-events-none absolute inset-0 -z-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+            style={{
+              background: "radial-gradient(circle at center, rgba(255,255,255,0.15) 0%, transparent 60%)",
+              x: glareX,
+              y: glareY,
+            }}
+          />
 
-        <div className="rounded-2xl bg-white p-4 shadow-lg">
-          {qr ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={qr} alt="QR Code" className="h-52 w-52" />
-          ) : (
-            <div className="h-52 w-52 animate-pulse rounded bg-zinc-200" />
-          )}
-        </div>
+          <div
+            className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/5 shadow-inner ring-1 ring-white/10"
+            style={{ transform: "translateZ(30px)" }}
+          >
+            <span className="text-5xl drop-shadow-md">{t.emoji}</span>
+          </div>
 
-        <div className="space-y-1">
-          <p className="text-lg font-bold text-white">📲 Aponte a câmera</p>
-          <p className="text-sm text-white/80">
-            Junte selos e ganhe: <strong>{recompensa}</strong>
-          </p>
-        </div>
+          <div style={{ transform: "translateZ(40px)" }}>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-400">
+              Cartão Fidelidade
+            </p>
+            <h2 className="mt-1 text-3xl font-black text-white">{nomeNegocio}</h2>
+          </div>
+
+          <div
+            className="rounded-[1.5rem] bg-white p-5 shadow-xl ring-4 ring-white/10"
+            style={{ transform: "translateZ(50px)" }}
+          >
+            {qr ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={qr} alt="QR Code" className="h-56 w-56 rounded-xl" />
+            ) : (
+              <div className="h-56 w-56 animate-pulse rounded-xl bg-zinc-200" />
+            )}
+          </div>
+
+          <div className="space-y-2" style={{ transform: "translateZ(30px)" }}>
+            <p className="text-xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
+              <QrCode className="h-5 w-5 text-violet-400" />
+              Aponte a câmera
+            </p>
+            <p className="text-sm text-zinc-300">
+              Junte selos e ganhe: <strong className="text-violet-300">{recompensa}</strong>
+            </p>
+          </div>
+        </motion.div>
       </div>
 
-      <p className="break-all text-center font-mono text-xs text-zinc-500">{url}</p>
+      {/* Copy Link Input Area */}
+      <div className="mx-auto max-w-sm rounded-2xl border border-white/10 bg-zinc-900/50 p-2 backdrop-blur-md flex items-center justify-between gap-2 shadow-inner">
+        <div className="flex-1 overflow-hidden px-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500 mb-0.5">Link do Programa</p>
+          <p className="truncate font-mono text-xs text-zinc-300">{url}</p>
+        </div>
+        <button
+          onClick={copiarLink}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-zinc-300 transition-colors hover:bg-violet-600 hover:text-white"
+          title="Copiar link"
+        >
+          {copiado ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+        </button>
+      </div>
 
       {/* Versão de impressão — clara, econômica de tinta, legível em papel */}
       <div id="poster-print" className="hidden">
@@ -118,20 +212,33 @@ export default function QRPoster({
       </div>
 
       {/* Ações (não imprimem) */}
-      <div className="no-print flex justify-center gap-3">
+      <div className="no-print mx-auto grid max-w-sm grid-cols-2 gap-3">
         <button
           onClick={imprimir}
-          className="rounded-xl bg-violet-600 px-5 py-2.5 font-semibold text-white transition hover:bg-violet-500"
+          className="group flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-500/25 transition-all hover:scale-[1.02] hover:bg-violet-500 col-span-2"
         >
-          🖨️ Imprimir
+          <Printer className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
+          Imprimir Cartaz
         </button>
         <button
           onClick={baixar}
-          className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md px-5 py-2.5 font-semibold text-zinc-200 transition hover:bg-white/10"
+          className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-zinc-300 transition-colors hover:bg-white/10 hover:text-white"
         >
-          ⬇️ Baixar QR
+          <Download className="h-4 w-4" />
+          Baixar QR
+        </button>
+        <button
+          onClick={compartilhar}
+          className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-zinc-300 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <Share2 className="h-4 w-4" />
+          Compartilhar
         </button>
       </div>
+
+      <p className="no-print px-2 text-center text-xs leading-relaxed text-zinc-500">
+        Dica: mande o link no WhatsApp ou deixe o cartaz perto do caixa para o cliente entrar no programa.
+      </p>
 
       <style>{`
         @media print {
@@ -141,6 +248,9 @@ export default function QRPoster({
           #poster-print, #poster-print * { visibility: visible; }
           #poster-print { position: absolute; left: 50%; top: 40px; transform: translateX(-50%); }
           .no-print { display: none !important; }
+        }
+        .perspective-1000 {
+          perspective: 1000px;
         }
       `}</style>
     </div>

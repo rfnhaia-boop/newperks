@@ -1,13 +1,17 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, QrCode, Settings } from "lucide-react";
+import { LayoutDashboard, Megaphone, RotateCcw, Users, QrCode, Settings, MessageSquareText, Gift } from "lucide-react";
 import { motion } from "framer-motion";
 
 const ABAS = [
   { href: "/painel", label: "Dashboard", icone: LayoutDashboard },
   { href: "/painel/clientes", label: "Clientes", icone: Users },
   { href: "/painel/qrcode", label: "QR Code", icone: QrCode },
+  { href: "/painel/campanhas", label: "Ofertas", icone: Megaphone },
+  { href: "/painel/retencao", label: "Retorno", icone: RotateCcw },
+  { href: "/painel/feedback", label: "Feedback", icone: MessageSquareText },
+  { href: "/painel/recompensas", label: "Prêmios", icone: Gift },
   { href: "/painel/config", label: "Config", icone: Settings },
 ];
 

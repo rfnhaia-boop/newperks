@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getTema } from "@/lib/themes";
 import { toast } from "@/components/Toaster";
+import { Gift, Search, UsersRound } from "lucide-react";
 
 type Carimbo = {
   id: string;
@@ -17,6 +18,9 @@ type Cartao = {
   resgates: number;
   updatedAt: Date | string;
   carimbos: Carimbo[];
+  feedback?: { nota: number; comentario: string | null; createdAt: Date | string } | null;
+  campanhaOrigem?: { titulo: string } | null;
+  indicador?: { cliente: { nome: string } } | null;
   cliente: { id: string; nome: string; telefone: string | null; email: string | null };
 };
 
@@ -179,15 +183,31 @@ export default function ClientesList({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3.5 backdrop-blur-md">
+          <UsersRound className="h-4 w-4 text-violet-300" />
+          <p className="mt-3 text-2xl font-black tracking-tight text-white">{contagem.juntando + contagem.novos}</p>
+          <p className="text-xs font-medium text-zinc-400">Clientes em movimento</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3.5 backdrop-blur-md">
+          <Gift className="h-4 w-4 text-emerald-300" />
+          <p className="mt-3 text-2xl font-black tracking-tight text-white">{contagem.prontos}</p>
+          <p className="text-xs font-medium text-zinc-400">Prêmios para entregar</p>
+        </div>
+      </div>
+
       {/* Busca */}
-      <input
-        type="text"
-        placeholder="Buscar por nome ou email..."
-        value={busca}
-        onChange={(e) => setBusca(e.target.value)}
-        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-white outline-none backdrop-blur-md transition focus:border-violet-500/50 focus:bg-white/10 placeholder-zinc-500"
-      />
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+        <input
+          type="text"
+          placeholder="Buscar cliente, email ou telefone"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          className="w-full rounded-2xl border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-white outline-none backdrop-blur-md transition focus:border-violet-500/60 focus:bg-white/[0.08] placeholder-zinc-500"
+        />
+      </div>
 
       {/* Chips de filtro */}
       <div className="flex flex-wrap gap-2">
@@ -210,8 +230,9 @@ export default function ClientesList({
       </div>
 
       {ordenados.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 py-12 text-center">
-          <p className="text-zinc-500">
+        <div className="rounded-3xl border border-dashed border-white/10 px-6 py-12 text-center">
+          <p className="text-3xl">{cartoes.length === 0 ? "👋" : "🔎"}</p>
+          <p className="mt-3 font-semibold text-zinc-400">
             {cartoes.length === 0 ? "Nenhum cliente ainda" : "Nenhum cliente nesse filtro"}
           </p>
           {cartoes.length === 0 && (
@@ -219,8 +240,8 @@ export default function ClientesList({
           )}
         </div>
       ) : (
-        /* Grade de mini-cards */
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        /* Lista otimizada para leitura rápida no celular */
+        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
           {ordenados.map((cartao) => {
             const status = statusDe(cartao);
             const pct = Math.min((cartao.selos / selosParaGanhar) * 100, 100);
@@ -234,7 +255,7 @@ export default function ClientesList({
               <button
                 key={cartao.id}
                 onClick={() => abrirPopup(cartao.cliente.id)}
-                className={`group rounded-2xl border ${borda} p-3.5 text-center transition hover:-translate-y-0.5`}
+                className={`group flex items-center gap-3 rounded-2xl border ${borda} p-3.5 text-left transition hover:-translate-y-0.5 hover:bg-white/[0.07]`}
                 style={{
                   background: "rgba(255,255,255,0.04)",
                   backdropFilter: "blur(16px)",
@@ -242,33 +263,21 @@ export default function ClientesList({
                 }}
               >
                 <div
-                  className={`mx-auto flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-white ${t.seloBg}`}
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${t.seloBg}`}
                 >
                   {iniciais(cartao.cliente.nome)}
                 </div>
-                <p className="mt-2 truncate text-sm font-semibold text-white">{cartao.cliente.nome}</p>
-                <p
-                  className={`mt-0.5 text-xs font-medium ${
-                    status === "prontos"
-                      ? "text-emerald-400"
-                      : status === "sumidos"
-                        ? "text-amber-400"
-                        : "text-zinc-500"
-                  }`}
-                >
-                  {status === "prontos"
-                    ? `${cartao.selos}/${selosParaGanhar} 🎁`
-                    : status === "sumidos"
-                      ? `😴 ${diasSemVisita(cartao)} dias`
-                      : `${cartao.selos}/${selosParaGanhar}`}
-                </p>
-                <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/5">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      status === "prontos" ? "bg-emerald-500" : t.seloBg
-                    }`}
-                    style={{ width: `${pct}%` }}
-                  />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold text-white">{cartao.cliente.nome}</p>
+                    <span className={`shrink-0 text-[11px] font-bold ${status === "prontos" ? "text-emerald-400" : status === "sumidos" ? "text-amber-400" : "text-zinc-500"}`}>
+                      {status === "prontos" ? "Pronto" : status === "sumidos" ? `${diasSemVisita(cartao)}d sem vir` : `${cartao.selos}/${selosParaGanhar}`}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+                    <div className={`h-full rounded-full transition-all duration-500 ${status === "prontos" ? "bg-emerald-500" : t.seloBg}`} style={{ width: `${pct}%` }} />
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-zinc-500">{status === "prontos" ? "Recompensa disponível para resgate" : status === "sumidos" ? "Vale chamar de volta" : `${selosParaGanhar - cartao.selos} selo${selosParaGanhar - cartao.selos !== 1 ? "s" : ""} para a recompensa`}</p>
                 </div>
               </button>
             );
@@ -370,6 +379,11 @@ export default function ClientesList({
                       )}
                       {cartao.resgates > 0 && ` · ${cartao.resgates} resgate${cartao.resgates !== 1 ? "s" : ""}`}
                     </p>
+                    <div className="mt-4 grid gap-2 text-xs">
+                      {cartao.campanhaOrigem && <p className="rounded-lg bg-sky-400/10 px-3 py-2 text-sky-200">Chegou pela campanha: <b>{cartao.campanhaOrigem.titulo}</b></p>}
+                      {cartao.indicador && <p className="rounded-lg bg-[#e9ff65]/10 px-3 py-2 text-[#e9ff65]">Indicado por: <b>{cartao.indicador.cliente.nome}</b></p>}
+                      {cartao.feedback && <p className="rounded-lg bg-amber-300/10 px-3 py-2 text-amber-100">Feedback: <b>{cartao.feedback.nota} ★</b>{cartao.feedback.comentario ? ` · ${cartao.feedback.comentario}` : ""}</p>}
+                    </div>
 
                     {/* Ação */}
                     {completo ? (

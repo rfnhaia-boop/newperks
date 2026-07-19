@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
+import { useSearchParams } from "next/navigation";
 import { getTema } from "@/lib/themes";
 import BackgroundFidelix from "@/components/BackgroundFidelix";
 
@@ -9,6 +10,11 @@ type Lojista = {
   tema: string;
   selosParaGanhar: number;
   recompensa: string;
+  cidade?: string | null;
+  whatsapp?: string | null;
+  ofertaPrimeiraVisita?: string | null;
+  ofertaPrimeiraVisitaAtiva?: boolean;
+  ofertaPrimeiraVisitaRegras?: string | null;
 };
 
 export default function EntradaQRPage({
@@ -17,39 +23,45 @@ export default function EntradaQRPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = use(params);
+  const searchParams = useSearchParams();
+  const campanhaId = searchParams.get("campanha");
+  const indicadoPorCodigo = searchParams.get("ref");
+  const origem = searchParams.get("origem");
   const [lojista, setLojista] = useState<Lojista | null>(null);
-  const [estado, setEstado] = useState<"carregando" | "form" | "enviado" | "naoencontrado">(
+  const [estado, setEstado] = useState<"carregando" | "form" | "carteira" | "enviado" | "naoencontrado">(
     "carregando"
   );
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [aniversario, setAniversario] = useState("");
+  const [aceitaComunicacoes, setAceitaComunicacoes] = useState(false);
   const [enviando, setEnviando] = useState(false);
-  const [resultado, setResultado] = useState<{ link: string; emailEnviado: boolean } | null>(null);
+  const [resultado, setResultado] = useState<{ emailEnviado: boolean; codigoTeste?: string } | null>(null);
   // "cadastro" = primeira vez | "entrar" = já tem cartão nesta loja
   const [modo, setModo] = useState<"cadastro" | "entrar">("cadastro");
   const [erro, setErro] = useState<string | null>(null);
-
-  const chave = `fidelix:token:${slug}`;
+  const [carteira, setCarteira] = useState<{ nome: string; nomeNegocio: string; link: string | null; campanha?: { titulo: string; beneficio: string } | null } | null>(null);
 
   useEffect(() => {
     (async () => {
-      // Já cadastrou neste aparelho? vai direto pro cartão
-      const tokenSalvo = localStorage.getItem(chave);
-      if (tokenSalvo) {
-        window.location.href = `/cartao/${tokenSalvo}`;
-        return;
-      }
-      const res = await fetch(`/api/c/${slug}`);
+      const campanhaQueryApi = campanhaId ? `?campanha=${encodeURIComponent(campanhaId)}` : "";
+      const res = await fetch(`/api/c/${slug}${campanhaQueryApi}`);
       if (!res.ok) {
         setEstado("naoencontrado");
         return;
       }
       setLojista(await res.json());
-      setEstado("form");
+      const campanhaQuery = campanhaId ? `?campanha=${encodeURIComponent(campanhaId)}` : "";
+      const acesso = await fetch(`/api/c/${slug}/carteira${campanhaQuery}`).then((r) => r.json()).catch(() => null);
+      if (acesso?.autenticado) {
+        setCarteira(acesso);
+        setEstado("carteira");
+      } else {
+        setEstado("form");
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]);
+  }, [slug, campanhaId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -57,13 +69,13 @@ export default function EntradaQRPage({
     if (modo === "cadastro" && !nome.trim()) return;
     setErro(null);
     setEnviando(true);
-    let res: Response, data: { link?: string; emailEnviado?: boolean; error?: string };
+    let res: Response, data: { acessarCarteira?: boolean; emailEnviado?: boolean; codigoTeste?: string; error?: string };
     try {
       res = await fetch(`/api/c/${slug}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
-          modo === "entrar" ? { email, modo: "entrar" } : { nome, email, aniversario: aniversario || undefined }
+          modo === "entrar" ? { email, modo: "entrar" } : { nome, email, aniversario: aniversario || undefined, indicadoPorCodigo: indicadoPorCodigo || undefined, campanhaId: campanhaId || undefined, origem: origem || undefined, aceitaComunicacoes }
         ),
       });
       data = await res.json().catch(() => ({}));
@@ -73,18 +85,35 @@ export default function EntradaQRPage({
       return;
     }
     setEnviando(false);
-    if (res.ok && data.link) {
-      const token = data.link.split("/cartao/")[1];
-      localStorage.setItem(chave, token);
+    if (res.ok && data.acessarCarteira) {
       if (modo === "entrar") {
-        // Já tem cartão: vai direto, sem tela intermediária
-        window.location.href = data.link;
+        window.location.href = `/carteira?email=${encodeURIComponent(email)}`;
         return;
       }
-      setResultado({ link: data.link, emailEnviado: data.emailEnviado ?? false });
+      setResultado({ emailEnviado: data.emailEnviado ?? false, codigoTeste: data.codigoTeste });
       setEstado("enviado");
     } else {
       setErro(data.error ?? "Algo deu errado. Tente de novo.");
+    }
+  }
+
+  async function usarCarteira() {
+    if (!carteira) return;
+    setEnviando(true);
+    setErro(null);
+    try {
+      const params = new URLSearchParams();
+      if (indicadoPorCodigo) params.set("ref", indicadoPorCodigo);
+      if (campanhaId) params.set("campanha", campanhaId);
+      if (origem) params.set("origem", origem);
+      const refQuery = params.size ? `?${params.toString()}` : "";
+      const res = await fetch(`/api/c/${slug}/carteira${refQuery}`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.link) throw new Error(data.error ?? "Não foi possível abrir seu cartão.");
+      window.location.href = data.link;
+    } catch (err) {
+      setEnviando(false);
+      setErro(err instanceof Error ? err.message : "Tente novamente em alguns instantes.");
     }
   }
 
@@ -121,6 +150,12 @@ export default function EntradaQRPage({
           <h1 className="text-3xl font-extrabold text-white tracking-tight drop-shadow-sm">
             {lojista?.nomeNegocio}
           </h1>
+          <a href="/carteira" className="mt-3 inline-flex text-xs font-bold text-white/60 transition hover:text-white">
+            Já tem outros cartões? Abrir minha carteira →
+          </a>
+          {campanhaId && <div className="mx-auto mt-5 max-w-sm rounded-2xl border border-[#e9ff65]/30 bg-[#e9ff65]/10 px-4 py-3 text-left"><p className="text-[10px] font-black uppercase tracking-[.16em] text-[#e9ff65]">Oferta de primeira visita</p><p className="mt-1 text-sm font-bold text-white">Entre no programa e veja sua vantagem exclusiva.</p></div>}
+          {!campanhaId && lojista?.ofertaPrimeiraVisitaAtiva && lojista.ofertaPrimeiraVisita && <div className="mx-auto mt-5 max-w-sm rounded-2xl border border-[#e9ff65]/30 bg-[#e9ff65]/10 px-4 py-3 text-left"><p className="text-[10px] font-black uppercase tracking-[.16em] text-[#e9ff65]">Vantagem de primeira visita</p><p className="mt-1 text-sm font-bold text-white">{lojista.ofertaPrimeiraVisita}</p>{lojista.ofertaPrimeiraVisitaRegras && <p className="mt-1.5 text-xs leading-5 text-white/65">{lojista.ofertaPrimeiraVisitaRegras}</p>}</div>}
+          {lojista?.cidade && <p className="mt-3 text-xs font-bold text-white/45">Disponível em {lojista.cidade}{lojista.whatsapp ? " · atendimento pelo WhatsApp" : ""}</p>}
         </div>
 
         {estado === "form" && (
@@ -160,6 +195,7 @@ export default function EntradaQRPage({
                   />
                 </div>
               )}
+              {modo === "cadastro" && <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-white/10 bg-white/[.035] p-3 text-left"><input type="checkbox" checked={aceitaComunicacoes} onChange={(e) => setAceitaComunicacoes(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#e9ff65]" /><span className="text-[11px] leading-5 text-white/55">Quero receber lembretes sobre meu cartão e vantagens deste estabelecimento por e-mail.</span></label>}
               <div className="space-y-1">
                 <input
                   type="email"
@@ -230,6 +266,23 @@ export default function EntradaQRPage({
           </div>
         )}
 
+        {estado === "carteira" && carteira && (
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-8 shadow-[0_24px_50px_-12px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/45">Sua carteira Fidelix</p>
+            <h2 className="mt-3 text-2xl font-bold tracking-tight text-white">Oi, {carteira.nome.split(" ")[0]}.</h2>
+            <p className="mt-2 text-sm leading-relaxed text-white/70">
+              {carteira.link ? `Seu cartão da ${carteira.nomeNegocio} já está aqui.` : "Você já está conectado. Só falta autorizar este cartão na sua carteira."}
+            </p>
+            {carteira.campanha && !carteira.link && <div className="mt-5 rounded-2xl border border-white/15 bg-white/10 p-4"><p className="text-xs font-bold uppercase tracking-[0.16em] text-white/50">Sua oferta de boas-vindas</p><p className="mt-2 text-sm font-bold text-white">{carteira.campanha.titulo}</p><p className="mt-1 text-sm font-black text-[#e9ff65]">{carteira.campanha.beneficio}</p></div>}
+            {erro && <p className="mt-4 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">{erro}</p>}
+            <button onClick={() => { if (carteira.link) window.location.href = carteira.link; else usarCarteira(); }} disabled={enviando} className="mt-6 w-full rounded-2xl bg-white py-3.5 font-bold text-zinc-950 shadow-lg transition hover:-translate-y-0.5 hover:bg-white/95 disabled:opacity-60">
+              {enviando ? "Preparando..." : carteira.link ? "Abrir meu cartão" : "Liberar meu cartão"}
+            </button>
+            <button onClick={() => setEstado("form")} className="mt-4 w-full text-center text-sm font-semibold text-white/60 transition hover:text-white">Não sou {carteira.nome.split(" ")[0]}</button>
+          </div>
+        )}
+
         {estado === "enviado" && resultado && (
           <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-8 text-center shadow-[0_24px_50px_-12px_rgba(0,0,0,0.5)] backdrop-blur-2xl transition-all duration-300">
             <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -240,14 +293,15 @@ export default function EntradaQRPage({
             <h2 className="text-xl font-bold text-white tracking-tight">Cartão criado!</h2>
             <p className="mt-2 text-sm text-white/70 leading-relaxed">
               {resultado.emailEnviado
-                ? "Enviamos o link de acesso para o seu email."
-                : "Seu cartão está pronto. Acesse pelo botão abaixo."}
+                ? "Enviamos um código de acesso para o seu email."
+                : "Seu cartão está pronto. Use o código de acesso para abrir sua carteira."}
             </p>
+            {resultado.codigoTeste && <p className="mt-3 text-sm font-black text-[#e9ff65]">Teste local: {resultado.codigoTeste}</p>}
             <a
-              href={resultado.link}
+              href={`/carteira?email=${encodeURIComponent(email)}`}
               className="mt-6 block w-full rounded-2xl bg-white py-3.5 font-bold text-zinc-950 shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/95 hover:shadow-xl active:translate-y-0"
             >
-              Ver meu cartão agora
+              Abrir minha carteira
             </a>
           </div>
         )}

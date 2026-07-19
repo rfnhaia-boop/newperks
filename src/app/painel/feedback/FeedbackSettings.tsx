@@ -1,0 +1,11 @@
+"use client";
+import { useState } from "react";
+
+export default function FeedbackSettings({ inicialUrl, inicialSelo }: { inicialUrl: string; inicialSelo: boolean }) {
+  const [url, setUrl] = useState(inicialUrl);
+  const [selo, setSelo] = useState(inicialSelo);
+  const [salvando, setSalvando] = useState(false);
+  const [mensagem, setMensagem] = useState("");
+  async function salvar(e: React.FormEvent) { e.preventDefault(); setSalvando(true); setMensagem(""); const r = await fetch("/api/feedback/config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ googleReviewUrl: url, seloPorFeedback: selo }) }); const d = await r.json().catch(() => ({})); setSalvando(false); setMensagem(r.ok ? "Preferências salvas." : d.error ?? "Não foi possível salvar."); }
+  return <form onSubmit={salvar} className="rounded-[1.5rem] border border-white/10 bg-white/[.035] p-5"><p className="text-xs font-black uppercase tracking-[.18em] text-sky-200">Estratégia de avaliação</p><h2 className="mt-2 text-lg font-black text-white">Use o feedback a seu favor.</h2><label className="mt-5 block text-sm font-bold text-zinc-300">Link da avaliação no Google</label><input value={url} onChange={(e) => setUrl(e.target.value)} type="url" placeholder="https://g.page/r/.../review" className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-sky-300/60" /><p className="mt-2 text-xs leading-5 text-zinc-500">Para notas 4 e 5, abrimos este link de forma opcional. Nunca pedimos uma nota específica.</p><label className="mt-5 flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-white/10 bg-black/15 p-3"><span><span className="block text-sm font-bold text-white">1 selo por feedback</span><span className="mt-0.5 block text-xs text-zinc-500">Uma vez por cartão, independentemente da nota.</span></span><input type="checkbox" checked={selo} onChange={(e) => setSelo(e.target.checked)} className="h-5 w-5 accent-sky-300" /></label>{mensagem && <p className="mt-3 text-xs font-bold text-sky-200">{mensagem}</p>}<button disabled={salvando} className="mt-4 rounded-xl bg-white px-4 py-3 text-sm font-black text-zinc-950 transition hover:bg-sky-200 disabled:opacity-50">{salvando ? "Salvando..." : "Salvar preferências"}</button></form>;
+}

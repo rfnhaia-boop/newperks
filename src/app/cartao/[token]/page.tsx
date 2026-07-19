@@ -6,6 +6,7 @@ import { getTema } from "@/lib/themes";
 import BackgroundFidelix from "@/components/BackgroundFidelix";
 import Confete from "@/components/Confete";
 import TiltCard from "@/components/TiltCard";
+import FeedbackForm from "./FeedbackForm";
 
 type Dados = {
   nomeCliente: string;
@@ -15,11 +16,20 @@ type Dados = {
   tema: string;
   selosParaGanhar: number;
   recompensa: string;
+  ofertaPrimeiraVisita: string | null;
+  recompensaEstoque: number | null;
+  recompensaValidaAte: string | null;
+  recompensaRegras: string | null;
   slug: string;
   whatsapp: string | null;
+  instagram: string | null;
+  site: string | null;
+  linksExtra: { titulo: string, url: string }[] | null;
   regras: string | null;
   horario: string | null;
   endereco: string | null;
+  linkIndicacao: string;
+  feedbackEnviado: boolean;
 };
 
 export default function CartaoPessoalPage({
@@ -89,6 +99,14 @@ export default function CartaoPessoalPage({
 
   const tema = getTema(dados?.tema);
 
+  async function indicarAmigo() {
+    if (!dados) return;
+    const texto = `Eu junto vantagens na ${dados.nomeNegocio}. Crie seu cartão pelo meu convite: ${dados.linkIndicacao}`;
+    if (navigator.share) { await navigator.share({ title: `Vantagens na ${dados.nomeNegocio}`, text: texto, url: dados.linkIndicacao }); return; }
+    await navigator.clipboard.writeText(texto);
+    alert("Link de convite copiado!");
+  }
+
   if (estado === "carregando") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-950">
@@ -111,6 +129,7 @@ export default function CartaoPessoalPage({
   const faltam = dados.selosParaGanhar - dados.selos;
   const limite = Math.max(2, Math.ceil(dados.selosParaGanhar / 3));
   const perto = !completo && faltam <= limite;
+  const recompensaExpirada = Boolean(dados.recompensaValidaAte && new Date(dados.recompensaValidaAte) < new Date());
 
   return (
     <div className="relative min-h-screen px-4 py-8 flex items-center justify-center overflow-hidden">
@@ -165,7 +184,8 @@ export default function CartaoPessoalPage({
           /* Segunda Página: Hub Especializado com Tabs */
           <div className="space-y-5 animate-fade-in">
             {/* Header com mini-identidade */}
-            <div className="flex items-center gap-3 pl-2">
+            <div className="flex items-center justify-between gap-3 pl-2">
+              <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 border border-white/15 backdrop-blur-md">
                 <span className="text-2xl">{tema.emoji}</span>
               </div>
@@ -173,6 +193,8 @@ export default function CartaoPessoalPage({
                 <h1 className="text-lg font-black text-white leading-none">{dados.nomeNegocio}</h1>
                 <p className="text-[10px] text-white/50 font-bold uppercase tracking-wider mt-0.5">Fidelidade VIP</p>
               </div>
+              </div>
+              <a href="/carteira" className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-black text-white/80 transition hover:bg-white hover:text-zinc-950">Meus cartões</a>
             </div>
 
             {/* Sistema de Abas (Tabs) */}
@@ -334,6 +356,27 @@ export default function CartaoPessoalPage({
                     </div>
                   </div>
 
+                  {dados.ofertaPrimeiraVisita && <div className="rounded-2xl border border-[#e9ff65]/30 bg-[#e9ff65]/[.09] p-4"><p className="text-[10px] font-black uppercase tracking-[.16em] text-[#e9ff65]">Sua vantagem de primeira visita</p><p className="mt-1.5 text-sm font-black text-white">{dados.ofertaPrimeiraVisita}</p><p className="mt-1 text-xs leading-5 text-white/65">Mostre este cartão antes de receber seu primeiro selo no balcão.</p></div>}
+
+                  {(dados.recompensaValidaAte || dados.recompensaEstoque !== null || dados.recompensaRegras) && (
+                    <div className="rounded-2xl border border-amber-300/20 bg-amber-300/[.07] p-4 text-xs text-white/75">
+                      <p className="font-black uppercase tracking-wider text-amber-200">Condições da recompensa</p>
+                      <div className="mt-2 space-y-1.5 leading-5">
+                        {dados.recompensaValidaAte && <p>{recompensaExpirada ? "Esta recompensa está sendo atualizada pelo estabelecimento." : `Válida até ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(new Date(dados.recompensaValidaAte))}.`}</p>}
+                        {dados.recompensaEstoque !== null && !recompensaExpirada && <p>{dados.recompensaEstoque > 0 ? `${dados.recompensaEstoque} ${dados.recompensaEstoque === 1 ? "disponível" : "disponíveis"} no momento.` : "Indisponível no momento — fale com o estabelecimento."}</p>}
+                        {dados.recompensaRegras && <p>{dados.recompensaRegras}</p>}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="rounded-2xl border border-[#e9ff65]/25 bg-[#e9ff65]/[.08] p-4">
+                    <p className="text-sm font-black text-[#e9ff65]">Indique e ganhe 1 selo</p>
+                    <p className="mt-1 text-xs leading-5 text-white/70">Seu selo bônus entra quando seu amigo fizer a primeira visita. Assim a vantagem vale para quem realmente chega.</p>
+                    <button onClick={indicarAmigo} className="mt-3 w-full rounded-xl bg-[#e9ff65] py-3 text-sm font-black text-zinc-950 transition hover:bg-[#f3ff9d]">Convidar um amigo →</button>
+                  </div>
+
+                  <FeedbackForm token={token} nomeNegocio={dados.nomeNegocio} jaEnviado={dados.feedbackEnviado} />
+
                   <div className="border-t border-white/10 pt-4">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-2">Regras de Lealdade</h3>
                     <ul className="space-y-1.5 text-xs text-white/60 list-disc list-inside">
@@ -420,19 +463,62 @@ export default function CartaoPessoalPage({
                     </div>
                   </div>
 
-                  {dados.whatsapp && (
-                    <a
-                      href={`https://wa.me/${dados.whatsapp.length <= 11 ? "55" + dados.whatsapp : dados.whatsapp}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 font-bold text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:bg-emerald-500 active:translate-y-0"
-                    >
-                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
-                        <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.2 1.2-1.7 1.2-.4.1-1 .1-1.6-.1-.4-.1-.9-.3-1.5-.6-2.6-1.1-4.3-3.8-4.4-4-.1-.2-1-1.4-1-2.6 0-1.2.6-1.8.9-2 .2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.4l.9 2.1c.1.2.1.4 0 .5l-.4.6-.5.5c-.1.1-.2.3-.1.5.1.2.6 1 1.3 1.7.9.8 1.7 1.1 2 1.2.2.1.4.1.5-.1l.7-.9c.2-.2.3-.2.6-.1l2 .9c.3.1.4.2.5.4 0 .1 0 .7-.2 1.2z" />
-                      </svg>
-                      <span>Chamar no WhatsApp</span>
-                    </a>
-                  )}
+                  <div className="space-y-3 pt-2">
+                    {dados.whatsapp && (
+                      <a
+                        href={`https://wa.me/${dados.whatsapp.length <= 11 ? "55" + dados.whatsapp : dados.whatsapp}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 font-bold text-white shadow-lg shadow-emerald-600/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-emerald-500 hover:shadow-emerald-500/40 active:translate-y-0"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+                          <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.2 1.2-1.7 1.2-.4.1-1 .1-1.6-.1-.4-.1-.9-.3-1.5-.6-2.6-1.1-4.3-3.8-4.4-4-.1-.2-1-1.4-1-2.6 0-1.2.6-1.8.9-2 .2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.4l.9 2.1c.1.2.1.4 0 .5l-.4.6-.5.5c-.1.1-.2.3-.1.5.1.2.6 1 1.3 1.7.9.8 1.7 1.1 2 1.2.2.1.4.1.5-.1l.7-.9c.2-.2.3-.2.6-.1l2 .9c.3.1.4.2.5.4 0 .1 0 .7-.2 1.2z" />
+                        </svg>
+                        <span>Chamar no WhatsApp</span>
+                      </a>
+                    )}
+                    {dados.instagram && (
+                      <a
+                        href={`https://instagram.com/${dados.instagram}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 py-3.5 font-bold text-white shadow-lg shadow-pink-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-pink-500/40 active:translate-y-0"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                        </svg>
+                        <span>Seguir no Instagram</span>
+                      </a>
+                    )}
+                    {dados.site && (
+                      <a
+                        href={dados.site.startsWith('http') ? dados.site : `https://${dados.site}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white/10 py-3.5 font-bold text-white backdrop-blur-md shadow-lg border border-white/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/20 active:translate-y-0"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        </svg>
+                        <span>Acessar Site</span>
+                      </a>
+                    )}
+                    {Array.isArray(dados.linksExtra) && dados.linksExtra.map((link, i) => (
+                      <a
+                        key={i}
+                        href={link.url.startsWith('http') ? link.url : `https://${link.url}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white/5 py-3.5 font-bold text-white/90 backdrop-blur-md border border-white/5 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/15 hover:text-white active:translate-y-0"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-4 w-4 opacity-70" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                        </svg>
+                        <span>{link.titulo}</span>
+                      </a>
+                    ))}
+                  </div>
 
                   <div className="border-t border-white/10 pt-4 text-center">
                     <a

@@ -74,7 +74,7 @@ export default function RegistroPage() {
             { key: "nomeNegocio", label: "Nome do negócio", type: "text" },
             { key: "nome", label: "Seu nome", type: "text" },
             { key: "email", label: "Email", type: "email" },
-            { key: "senha", label: "Senha (mínimo 6 caracteres)", type: "password" },
+            { key: "senha", label: "Senha (mínimo 10 caracteres)", type: "password" },
           ].map(({ key, label, type }) => (
             <div key={key}>
               <label className="mb-1 block text-sm text-zinc-400">{label}</label>
@@ -82,7 +82,7 @@ export default function RegistroPage() {
                 type={type}
                 value={form[key as keyof typeof form]}
                 onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                minLength={key === "senha" ? 6 : undefined}
+                minLength={key === "senha" ? 10 : undefined}
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-white outline-none transition focus:border-violet-500/50 focus:bg-white/10"
                 required
               />

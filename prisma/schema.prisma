@@ -7,25 +7,44 @@ datasource db {
 }
 
 model Lojista {
-  id              String   @id @default(cuid())
+  id              String     @id @default(cuid())
   nome            String
-  email           String   @unique
+  email           String     @unique
   senha           String
-  slug            String   @unique
+  slug            String     @unique
   nomeNegocio     String
-  tema            String   @default("generico")
-  selosParaGanhar Int      @default(10)
-  recompensa      String   @default("1 item grátis")
-  ticketMedio     Float    @default(0)
+  tema            String     @default("generico")
+  selosParaGanhar Int        @default(10)
+  recompensa      String     @default("1 item grátis")
+  recompensaEstoque Int?
+  recompensaValidaAte DateTime?
+  recompensaRegras String?
+  ofertaPrimeiraVisita String?
+  ofertaPrimeiraVisitaAtiva Boolean @default(false)
+  ofertaPrimeiraVisitaRegras String?
+  ticketMedio     Float      @default(0)
   whatsapp        String?
   regras          String?
   horario         String?
   endereco        String?
-  ativo           Boolean  @default(true)
-  createdAt       DateTime @default(now())
+  ativo           Boolean    @default(true)
+  createdAt       DateTime   @default(now())
   resetToken      String?
   resetTokenExp   DateTime?
+  cidade          String?
+  beneficioVipOuro String?
+  beneficioVipDiamante String?
+  instagram       String?
+  site            String?
+  linksExtra      Json?
+  googleReviewUrl String?
+  seloPorFeedback Boolean    @default(false)
+  campanhas       Campanha[]
   cartoes         Cartao[]
+  feedbacks       Feedback[]
+  resgatesDetalhados Resgate[]
+  automacoes      Automacao[]
+  enviosAutomacao EnvioAutomacao[]
 }
 
 model Cliente {
@@ -33,9 +52,14 @@ model Cliente {
   nome        String
   email       String?  @unique
   telefone    String?
-  aniversario String?  // "DD/MM"
+  aniversario String?
   createdAt   DateTime @default(now())
   cartoes     Cartao[]
+  codigoAcesso CodigoAcessoCarteira?
+  eventosSeguranca EventoSeguranca[]
+  aceitaComunicacoes Boolean @default(false)
+  aceitouComunicacoesEm DateTime?
+  enviosAutomacao EnvioAutomacao[]
 }
 
 model Cartao {
@@ -43,16 +67,121 @@ model Cartao {
   lojistaId     String
   clienteId     String
   token         String    @unique
+  codigoIndicacao String  @unique
   selos         Int       @default(0)
   totalCarimbos Int       @default(0)
   resgates      Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  lojista       Lojista   @relation(fields: [lojistaId], references: [id])
-  cliente       Cliente   @relation(fields: [clienteId], references: [id])
+  indicadorId   String?
+  indicacaoRecompensada Boolean @default(false)
   carimbos      Carimbo[]
+  cliente       Cliente   @relation(fields: [clienteId], references: [id])
+  indicador     Cartao?   @relation("IndicacoesDeClientes", fields: [indicadorId], references: [id])
+  indicados     Cartao[]  @relation("IndicacoesDeClientes")
+  lojista       Lojista   @relation(fields: [lojistaId], references: [id])
+  campanhaOrigemId String?
+  campanhaOrigem   Campanha? @relation("CartoesDaCampanha", fields: [campanhaOrigemId], references: [id], onDelete: SetNull)
+  origemCadastro String?
+  ofertaPrimeiraVisita String?
+  ofertaPrimeiraVisitaUsada Boolean @default(false)
+  feedback      Feedback?
+  resgatesDetalhados Resgate[]
 
   @@unique([lojistaId, clienteId])
+  @@index([indicadorId])
+}
+
+model Resgate {
+  id                String   @id @default(cuid())
+  lojistaId         String
+  cartaoId          String
+  recompensa        String
+  estoqueAntes      Int?
+  estoqueDepois     Int?
+  createdAt         DateTime @default(now())
+  lojista           Lojista @relation(fields: [lojistaId], references: [id], onDelete: Cascade)
+  cartao            Cartao  @relation(fields: [cartaoId], references: [id], onDelete: Cascade)
+
+  @@index([lojistaId, createdAt])
+  @@index([cartaoId, createdAt])
+}
+
+model Feedback {
+  id                  String   @id @default(cuid())
+  lojistaId           String
+  cartaoId            String   @unique
+  nota                Int
+  comentario          String?
+  seloBonusConcedido  Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  lojista             Lojista @relation(fields: [lojistaId], references: [id], onDelete: Cascade)
+  cartao              Cartao  @relation(fields: [cartaoId], references: [id], onDelete: Cascade)
+
+  @@index([lojistaId, createdAt])
+  @@index([lojistaId, nota])
+}
+
+model CodigoAcessoCarteira {
+  id         String   @id @default(cuid())
+  clienteId  String   @unique
+  codigoHash String
+  expiraEm   DateTime
+  tentativas Int      @default(0)
+  createdAt  DateTime @default(now())
+  cliente    Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@index([expiraEm])
+}
+
+model EventoSeguranca {
+  id        String   @id @default(cuid())
+  clienteId String?
+  tipo      String
+  ipHash    String?
+  dados     Json?
+  createdAt DateTime @default(now())
+  cliente   Cliente? @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+
+  @@index([clienteId, createdAt])
+  @@index([tipo, createdAt])
+}
+
+model Automacao {
+  id          String   @id @default(cuid())
+  lojistaId   String
+  tipo        String
+  ativa       Boolean  @default(false)
+  assunto     String
+  mensagem    String
+  diasInativo Int      @default(30)
+  iniciaEm    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  lojista     Lojista @relation(fields: [lojistaId], references: [id], onDelete: Cascade)
+  envios      EnvioAutomacao[]
+
+  @@unique([lojistaId, tipo])
+  @@index([ativa, tipo])
+}
+
+model EnvioAutomacao {
+  id           String     @id @default(cuid())
+  chave        String     @unique
+  lojistaId    String
+  clienteId    String
+  automacaoId  String
+  status       String     @default("PENDENTE")
+  erro         String?
+  createdAt    DateTime   @default(now())
+  enviadoEm    DateTime?
+  lojista      Lojista   @relation(fields: [lojistaId], references: [id], onDelete: Cascade)
+  cliente      Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  automacao    Automacao @relation(fields: [automacaoId], references: [id], onDelete: Cascade)
+
+  @@index([lojistaId, createdAt])
+  @@index([clienteId, createdAt])
 }
 
 model Carimbo {
@@ -62,4 +191,27 @@ model Carimbo {
   valor     Float?
   createdAt DateTime @default(now())
   cartao    Cartao   @relation(fields: [cartaoId], references: [id])
+}
+
+model Campanha {
+  id        String    @id @default(cuid())
+  lojistaId String
+  titulo    String
+  beneficio String
+  descricao String?
+  ativa     Boolean   @default(true)
+  destaque  Boolean   @default(false)
+  adesoes   Int       @default(0)
+  visualizacoes Int   @default(0)
+  primeirasVisitas Int @default(0)
+  retornos Int        @default(0)
+  iniciaEm  DateTime?
+  terminaEm DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  lojista   Lojista   @relation(fields: [lojistaId], references: [id], onDelete: Cascade)
+  cartoesOriginados Cartao[] @relation("CartoesDaCampanha")
+
+  @@index([lojistaId, ativa])
+  @@index([ativa, terminaEm])
 }

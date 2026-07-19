@@ -118,9 +118,39 @@ export default async function PainelPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{lojista?.nomeNegocio}</h1>
-        <p className="mt-1 text-sm text-zinc-400">Visão geral do seu programa de fidelidade</p>
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-violet-300">Visão geral</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight">{lojista?.nomeNegocio}</h1>
+          <p className="mt-1 text-sm text-zinc-400">Acompanhe e movimente seu programa de fidelidade.</p>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <a href="/painel/resultados" className="rounded-full border border-cyan-300/25 bg-cyan-300/[.08] px-3 py-1.5 text-xs font-black text-cyan-100 transition hover:bg-cyan-300/15">Ver resultados →</a>
+          <a href="/painel/captacao" className="rounded-full border border-[#e9ff65]/25 bg-[#e9ff65]/[.08] px-3 py-1.5 text-xs font-black text-[#e9ff65] transition hover:bg-[#e9ff65]/15">Captação</a>
+          <a href="/painel/automacoes" className="rounded-full border border-emerald-300/25 bg-emerald-300/[.08] px-3 py-1.5 text-xs font-black text-emerald-100 transition hover:bg-emerald-300/15">Automações</a>
+          <span className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 sm:inline-flex">
+            {cartoes.length} cliente{cartoes.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <a
+          href="/painel/clientes"
+          className="group rounded-2xl border border-violet-500/30 bg-violet-500/10 p-4 transition hover:-translate-y-0.5 hover:bg-violet-500/15"
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500 text-lg font-bold text-white shadow-lg shadow-violet-500/20">+</span>
+          <p className="mt-3 text-sm font-bold text-white">Dar selo</p>
+          <p className="mt-1 text-[11px] leading-snug text-violet-200/70">Abra um cliente e registre a visita.</p>
+        </a>
+        <a
+          href="/painel/qrcode"
+          className="group rounded-2xl border border-white/10 bg-white/[0.035] p-4 transition hover:-translate-y-0.5 hover:bg-white/[0.07]"
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-lg text-white">⌘</span>
+          <p className="mt-3 text-sm font-bold text-white">Seu QR Code</p>
+          <p className="mt-1 text-[11px] leading-snug text-zinc-500">Mostre no balcão e convide clientes.</p>
+        </a>
       </div>
 
       {/* Onboarding — lojista novo sem clientes ainda */}

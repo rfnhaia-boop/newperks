@@ -38,7 +38,7 @@ export async function PUT(req: NextRequest) {
 
   const { token, senha } = await req.json();
   if (!token || !senha) return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
-  if (senha.length < 6) return NextResponse.json({ error: "Senha deve ter ao menos 6 caracteres" }, { status: 400 });
+  if (senha.length < 10) return NextResponse.json({ error: "Senha deve ter ao menos 10 caracteres" }, { status: 400 });
 
   const lojista = await prisma.lojista.findFirst({
     where: { resetToken: token, resetTokenExp: { gt: new Date() } },

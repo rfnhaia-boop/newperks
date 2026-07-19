@@ -13,8 +13,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Dados incompletos" }, { status: 400 });
   }
 
-  if (typeof senha !== "string" || senha.length < 6) {
-    return NextResponse.json({ error: "Senha deve ter ao menos 6 caracteres" }, { status: 400 });
+  if (typeof senha !== "string" || senha.length < 10) {
+    return NextResponse.json({ error: "Senha deve ter ao menos 10 caracteres" }, { status: 400 });
   }
 
   if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
