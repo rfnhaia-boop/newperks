@@ -292,11 +292,8 @@ export default function EntradaQRPage({
             </div>
             <h2 className="text-xl font-bold text-white tracking-tight">Cartão criado!</h2>
             <p className="mt-2 text-sm text-white/70 leading-relaxed">
-              {resultado.emailEnviado
-                ? "Enviamos um código de acesso para o seu email."
-                : "Seu cartão está pronto. Use o código de acesso para abrir sua carteira."}
+              Enviamos um código de acesso para o seu email.
             </p>
-            {resultado.codigoTeste && <p className="mt-3 text-sm font-black text-[#e9ff65]">Teste local: {resultado.codigoTeste}</p>}
             <a
               href={`/carteira?email=${encodeURIComponent(email)}`}
               className="mt-6 block w-full rounded-2xl bg-white py-3.5 font-bold text-zinc-950 shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/95 hover:shadow-xl active:translate-y-0"
