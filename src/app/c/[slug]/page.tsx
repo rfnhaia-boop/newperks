@@ -17,6 +17,14 @@ type Lojista = {
   ofertaPrimeiraVisitaRegras?: string | null;
 };
 
+function formatarTelefone(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
 export default function EntradaQRPage({
   params,
 }: {
@@ -28,15 +36,16 @@ export default function EntradaQRPage({
   const indicadoPorCodigo = searchParams.get("ref");
   const origem = searchParams.get("origem");
   const [lojista, setLojista] = useState<Lojista | null>(null);
-  const [estado, setEstado] = useState<"carregando" | "form" | "carteira" | "enviado" | "naoencontrado">(
+  const [estado, setEstado] = useState<"carregando" | "form" | "carteira" | "naoencontrado">(
     "carregando"
   );
   const [nome, setNome] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [senha, setSenha] = useState("");
   const [email, setEmail] = useState("");
   const [aniversario, setAniversario] = useState("");
   const [aceitaComunicacoes, setAceitaComunicacoes] = useState(false);
   const [enviando, setEnviando] = useState(false);
-  const [resultado, setResultado] = useState<{ emailEnviado: boolean; codigoTeste?: string } | null>(null);
   // "cadastro" = primeira vez | "entrar" = já tem cartão nesta loja
   const [modo, setModo] = useState<"cadastro" | "entrar">("cadastro");
   const [erro, setErro] = useState<string | null>(null);
@@ -65,18 +74,23 @@ export default function EntradaQRPage({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!/.+@.+\..+/.test(email)) return;
+    if (telefone.replace(/\D/g, "").length < 10 || senha.length < 6) return;
     if (modo === "cadastro" && !nome.trim()) return;
     setErro(null);
     setEnviando(true);
-    let res: Response, data: { acessarCarteira?: boolean; emailEnviado?: boolean; codigoTeste?: string; error?: string };
+    let res: Response, data: { link?: string; error?: string };
     try {
       res = await fetch(`/api/c/${slug}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          modo === "entrar" ? { email, modo: "entrar" } : { nome, email, aniversario: aniversario || undefined, indicadoPorCodigo: indicadoPorCodigo || undefined, campanhaId: campanhaId || undefined, origem: origem || undefined, aceitaComunicacoes }
-        ),
+        body: JSON.stringify({
+          telefone,
+          senha,
+          modo,
+          ...(modo === "cadastro"
+            ? { nome, email: email || undefined, aniversario: aniversario || undefined, indicadoPorCodigo: indicadoPorCodigo || undefined, campanhaId: campanhaId || undefined, origem: origem || undefined, aceitaComunicacoes }
+            : {}),
+        }),
       });
       data = await res.json().catch(() => ({}));
     } catch {
@@ -85,13 +99,8 @@ export default function EntradaQRPage({
       return;
     }
     setEnviando(false);
-    if (res.ok && data.acessarCarteira) {
-      if (modo === "entrar") {
-        window.location.href = `/carteira?email=${encodeURIComponent(email)}`;
-        return;
-      }
-      setResultado({ emailEnviado: data.emailEnviado ?? false, codigoTeste: data.codigoTeste });
-      setEstado("enviado");
+    if (res.ok && data.link) {
+      window.location.href = data.link;
     } else {
       setErro(data.error ?? "Algo deu errado. Tente de novo.");
     }
@@ -141,7 +150,7 @@ export default function EntradaQRPage({
     <div className="relative min-h-screen px-4 py-16 flex items-center justify-center">
       {/* Dynamic themed background with floating 3D elements */}
       <BackgroundFidelix temaId={lojista?.tema} />
-      
+
       <div className="relative w-full max-w-md z-10">
         <div className="mb-8 text-center">
           <div className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-white/10 shadow-inner backdrop-blur-md border border-white/20 mb-3 transform hover:rotate-6 transition-transform duration-300">
@@ -162,7 +171,7 @@ export default function EntradaQRPage({
           <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-8 shadow-[0_24px_50px_-12px_rgba(0,0,0,0.5)] backdrop-blur-2xl transition-all duration-300 hover:border-white/15">
             {/* Glow inner line */}
             <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            
+
             {modo === "cadastro" ? (
               <>
                 <h2 className="text-xl font-bold text-white tracking-tight">Bem-vindo! 👋</h2>
@@ -177,7 +186,7 @@ export default function EntradaQRPage({
               <>
                 <h2 className="text-xl font-bold text-white tracking-tight">Que bom te ver! 🎉</h2>
                 <p className="mt-1.5 text-sm text-white/70 leading-relaxed">
-                  Digite o email do seu cadastro para abrir seu cartão.
+                  Digite seu telefone e senha para abrir seu cartão.
                 </p>
               </>
             )}
@@ -195,33 +204,59 @@ export default function EntradaQRPage({
                   />
                 </div>
               )}
-              {modo === "cadastro" && <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-white/10 bg-white/[.035] p-3 text-left"><input type="checkbox" checked={aceitaComunicacoes} onChange={(e) => setAceitaComunicacoes(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#e9ff65]" /><span className="text-[11px] leading-5 text-white/55">Quero receber lembretes sobre meu cartão e vantagens deste estabelecimento por e-mail.</span></label>}
               <div className="space-y-1">
                 <input
-                  type="email"
-                  placeholder="Seu melhor email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="Seu telefone (com DDD)"
+                  value={telefone}
+                  onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-white placeholder-white/40 outline-none transition-all duration-300 focus:border-white/30 focus:bg-white/10 focus:ring-4 focus:ring-white/5"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <input
+                  type="password"
+                  placeholder={modo === "cadastro" ? "Crie uma senha (mín. 6 caracteres)" : "Sua senha"}
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  minLength={6}
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-white placeholder-white/40 outline-none transition-all duration-300 focus:border-white/30 focus:bg-white/10 focus:ring-4 focus:ring-white/5"
                   required
                 />
               </div>
               {modo === "cadastro" && (
-                <div className="space-y-1">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="Aniversário DD/MM (opcional 🎂)"
-                    value={aniversario}
-                    onChange={(e) => {
-                      // máscara simples DD/MM
-                      const d = e.target.value.replace(/\D/g, "").slice(0, 4);
-                      setAniversario(d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d);
-                    }}
-                    maxLength={5}
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-white placeholder-white/40 outline-none transition-all duration-300 focus:border-white/30 focus:bg-white/10 focus:ring-4 focus:ring-white/5"
-                  />
-                </div>
+                <>
+                  <div className="space-y-1">
+                    <input
+                      type="email"
+                      placeholder="Email (opcional)"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-white placeholder-white/40 outline-none transition-all duration-300 focus:border-white/30 focus:bg-white/10 focus:ring-4 focus:ring-white/5"
+                    />
+                  </div>
+                  <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-white/10 bg-white/[.035] p-3 text-left">
+                    <input type="checkbox" checked={aceitaComunicacoes} onChange={(e) => setAceitaComunicacoes(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#e9ff65]" />
+                    <span className="text-[11px] leading-5 text-white/55">Quero receber lembretes sobre meu cartão e vantagens deste estabelecimento.</span>
+                  </label>
+                  <div className="space-y-1">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="Aniversário DD/MM (opcional 🎂)"
+                      value={aniversario}
+                      onChange={(e) => {
+                        // máscara simples DD/MM
+                        const d = e.target.value.replace(/\D/g, "").slice(0, 4);
+                        setAniversario(d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d);
+                      }}
+                      maxLength={5}
+                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-white placeholder-white/40 outline-none transition-all duration-300 focus:border-white/30 focus:bg-white/10 focus:ring-4 focus:ring-white/5"
+                    />
+                  </div>
+                </>
               )}
 
               {erro && (
@@ -257,12 +292,6 @@ export default function EntradaQRPage({
             >
               {modo === "cadastro" ? "Já tenho cartão aqui → Entrar" : "Primeira vez? → Criar cartão"}
             </button>
-
-            {modo === "cadastro" && (
-              <p className="mt-3 text-center text-xs text-white/40 font-medium">
-                Você recebe um link de acesso no seu email.
-              </p>
-            )}
           </div>
         )}
 
@@ -280,26 +309,6 @@ export default function EntradaQRPage({
               {enviando ? "Preparando..." : carteira.link ? "Abrir meu cartão" : "Liberar meu cartão"}
             </button>
             <button onClick={() => setEstado("form")} className="mt-4 w-full text-center text-sm font-semibold text-white/60 transition hover:text-white">Não sou {carteira.nome.split(" ")[0]}</button>
-          </div>
-        )}
-
-        {estado === "enviado" && resultado && (
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-8 text-center shadow-[0_24px_50px_-12px_rgba(0,0,0,0.5)] backdrop-blur-2xl transition-all duration-300">
-            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/10 border border-white/20 text-2xl mb-4">
-              ✅
-            </div>
-            <h2 className="text-xl font-bold text-white tracking-tight">Cartão criado!</h2>
-            <p className="mt-2 text-sm text-white/70 leading-relaxed">
-              Enviamos um código de acesso para o seu email.
-            </p>
-            <a
-              href={`/carteira?email=${encodeURIComponent(email)}`}
-              className="mt-6 block w-full rounded-2xl bg-white py-3.5 font-bold text-zinc-950 shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/95 hover:shadow-xl active:translate-y-0"
-            >
-              Abrir minha carteira
-            </a>
           </div>
         )}
 

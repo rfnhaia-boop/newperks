@@ -18,6 +18,9 @@ FROM node:24-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# NEXT_PUBLIC_* precisa existir no build (fica embutida no bundle do browser)
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
+ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
 # Gera o Prisma Client e builda o Next
 RUN npx prisma generate && npm run build
 

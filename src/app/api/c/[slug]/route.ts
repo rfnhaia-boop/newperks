@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { enviarCodigoCarteira } from "@/lib/email";
 import { rateLimit } from "@/lib/rate-limit";
-import { criarCodigoAcesso, hashCodigoAcesso, hashIp, novoCodigoIndicacao } from "@/lib/acesso-carteira";
+import { novoCodigoIndicacao } from "@/lib/acesso-carteira";
+import { cookieCarteira, criarTokenCarteira } from "@/lib/carteira-session";
 
-const DEZ_MINUTOS = 10 * 60 * 1000;
+const TRINTA_DIAS = 30 * 24 * 60 * 60 * 1000;
 
 // Dados públicos do lojista (tela inicial do QR)
 export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
@@ -25,18 +26,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (blocked) return blocked;
 
   const { slug } = await params;
-  const { nome, email, telefone, modo, aniversario, indicadoPorCodigo, campanhaId, origem, aceitaComunicacoes } = await req.json();
+  const { nome, telefone, senha, email, modo, aniversario, indicadoPorCodigo, campanhaId, origem, aceitaComunicacoes } = await req.json();
+
+  const telefoneNorm = typeof telefone === "string" ? telefone.replace(/\D/g, "") : "";
+  if (telefoneNorm.length < 10 || telefoneNorm.length > 11) {
+    return NextResponse.json({ error: "Digite um telefone válido, com DDD." }, { status: 400 });
+  }
+  if (typeof senha !== "string" || senha.length < 6) {
+    return NextResponse.json({ error: "A senha precisa ter ao menos 6 caracteres." }, { status: 400 });
+  }
 
   // Aniversário opcional no formato DD/MM
   const nivValido =
     typeof aniversario === "string" && /^([0-2]\d|3[01])\/(0\d|1[0-2])$/.test(aniversario.trim())
       ? aniversario.trim()
       : null;
-
-  if (!email?.trim()) {
-    return NextResponse.json({ error: "Email é obrigatório" }, { status: 400 });
-  }
-  const emailNorm = email.trim().toLowerCase();
+  const emailNorm = typeof email === "string" && email.trim() ? email.trim().toLowerCase() : null;
   const origemCadastro = typeof origem === "string"
     ? origem.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40) || null
     : null;
@@ -44,34 +49,43 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const lojista = await prisma.lojista.findUnique({ where: { slug } });
   if (!lojista) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
 
-  // Um e-mail não é prova de identidade: acesso de cliente sempre passa pela carteira e OTP.
+  let cliente = await prisma.cliente.findUnique({ where: { telefone: telefoneNorm } });
+
   if (modo === "entrar") {
-    return NextResponse.json({ acessarCarteira: true });
-  }
-
-  if (!nome?.trim()) {
-    return NextResponse.json({ error: "Nome e email são obrigatórios" }, { status: 400 });
-  }
-
-  // Upsert cliente por email
-  let cliente = await prisma.cliente.findUnique({ where: { email: emailNorm } });
-  if (!cliente) {
-    cliente = await prisma.cliente.create({
-      data: {
-        nome: nome.trim(),
-        email: emailNorm,
-        telefone: telefone?.trim() || null,
-        aniversario: nivValido,
-        aceitaComunicacoes: aceitaComunicacoes === true,
-        aceitouComunicacoesEm: aceitaComunicacoes === true ? new Date() : null,
-      },
-    });
-  } else if ((nivValido && !cliente.aniversario) || (aceitaComunicacoes === true && !cliente.aceitaComunicacoes)) {
-    // Cliente antigo informou o aniversário agora — aproveita e guarda
-    cliente = await prisma.cliente.update({
-      where: { id: cliente.id },
-      data: { ...(nivValido && !cliente.aniversario ? { aniversario: nivValido } : {}), ...(aceitaComunicacoes === true && !cliente.aceitaComunicacoes ? { aceitaComunicacoes: true, aceitouComunicacoesEm: new Date() } : {}) },
-    });
+    if (!cliente?.senha || !(await bcrypt.compare(senha, cliente.senha))) {
+      return NextResponse.json({ error: "Telefone ou senha incorretos." }, { status: 401 });
+    }
+  } else {
+    if (!nome?.trim()) {
+      return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
+    }
+    if (cliente?.senha) {
+      return NextResponse.json({ error: "Esse telefone já tem cadastro. Toque em \"Já tenho cartão\" para entrar." }, { status: 409 });
+    }
+    const senhaHash = await bcrypt.hash(senha, 10);
+    if (!cliente) {
+      cliente = await prisma.cliente.create({
+        data: {
+          nome: nome.trim(),
+          telefone: telefoneNorm,
+          senha: senhaHash,
+          email: emailNorm,
+          aniversario: nivValido,
+          aceitaComunicacoes: aceitaComunicacoes === true,
+          aceitouComunicacoesEm: aceitaComunicacoes === true ? new Date() : null,
+        },
+      });
+    } else {
+      cliente = await prisma.cliente.update({
+        where: { id: cliente.id },
+        data: {
+          senha: senhaHash,
+          ...(nivValido && !cliente.aniversario ? { aniversario: nivValido } : {}),
+          ...(emailNorm && !cliente.email ? { email: emailNorm } : {}),
+          ...(aceitaComunicacoes === true && !cliente.aceitaComunicacoes ? { aceitaComunicacoes: true, aceitouComunicacoesEm: new Date() } : {}),
+        },
+      });
+    }
   }
 
   // Acha ou cria o cartão deste cliente neste lojista
@@ -108,18 +122,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     await prisma.campanha.updateMany({ where: { id: campanhaId, lojistaId: lojista.id, ativa: true }, data: { adesoes: { increment: 1 } } });
   }
 
-  // O primeiro acesso também usa código descartável: não retornamos a chave do cartão.
-  const codigo = criarCodigoAcesso();
-  await prisma.$transaction([
-    prisma.codigoAcessoCarteira.upsert({
-      where: { clienteId: cliente.id },
-      create: { clienteId: cliente.id, codigoHash: hashCodigoAcesso(codigo), expiraEm: new Date(Date.now() + DEZ_MINUTOS) },
-      update: { codigoHash: hashCodigoAcesso(codigo), expiraEm: new Date(Date.now() + DEZ_MINUTOS), tentativas: 0, createdAt: new Date() },
-    }),
-    prisma.eventoSeguranca.create({ data: { clienteId: cliente.id, tipo: novo ? "cartao_criado_codigo_solicitado" : "codigo_carteira_solicitado", ipHash: hashIp(req) } }),
-  ]);
-  let emailEnviado = false;
-  const r = await enviarCodigoCarteira({ para: emailNorm, nome: cliente.nome, codigo });
-  emailEnviado = r.enviado;
-  return NextResponse.json({ acessarCarteira: true, emailEnviado, codigoTeste: process.env.NODE_ENV === "production" ? undefined : codigo });
+  const resposta = NextResponse.json({ link: `/cartao/${cartao.token}` });
+  resposta.cookies.set(cookieCarteira, criarTokenCarteira(cliente.id, TRINTA_DIAS), {
+    httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: TRINTA_DIAS / 1000,
+  });
+  return resposta;
 }

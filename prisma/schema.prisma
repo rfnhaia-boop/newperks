@@ -51,7 +51,8 @@ model Cliente {
   id          String   @id @default(cuid())
   nome        String
   email       String?  @unique
-  telefone    String?
+  telefone    String?  @unique
+  senha       String?
   aniversario String?
   createdAt   DateTime @default(now())
   cartoes     Cartao[]
