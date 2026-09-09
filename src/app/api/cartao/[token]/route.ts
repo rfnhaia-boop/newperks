@@ -55,6 +55,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
     horario: cartao.lojista.horario,
     endereco: cartao.lojista.endereco,
     feedbackEnviado: Boolean(cartao.feedback),
-    linkIndicacao: `${req.nextUrl.origin}/c/${cartao.lojista.slug}?ref=${cartao.codigoIndicacao}`,
+    // req.nextUrl.origin não é confiável atrás do proxy reverso (nginx) —
+    // vem localhost:3000 mesmo com Host/X-Forwarded-Proto corretos, porque
+    // o Next.js resolve a origin pelo bind interno, não pelos headers do proxy.
+    linkIndicacao: `${process.env.NEXTAUTH_URL || req.nextUrl.origin}/c/${cartao.lojista.slug}?ref=${cartao.codigoIndicacao}`,
   });
 }
