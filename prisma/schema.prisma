@@ -42,6 +42,9 @@ model Lojista {
   // Integração com parceiros (ex: Flow, agendamento) — chamada servidor-a-servidor
   integracaoFlowChaveHash String? @unique
   integracaoFlowAtiva     Boolean @default(false)
+  // Id do BarberProfile no Flow — garante que provisionar-conta é idempotente
+  // (repetir a chamada não cria uma segunda conta pra mesma barbearia)
+  flowBarberProfileId    String? @unique
   campanhas       Campanha[]
   cartoes         Cartao[]
   feedbacks       Feedback[]
