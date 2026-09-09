@@ -89,6 +89,9 @@ export async function POST(req: NextRequest) {
       email: emailNorm,
       senha: senhaAleatoria,
       slug,
+      // Toda conta provisionada pelo Flow é barbearia — sem isso caía no
+      // tema "generico" (⭐) em vez do visual certo (💈) pro cliente final.
+      tema: "barbearia",
       flowBarberProfileId: flowId,
       integracaoFlowChaveHash: chaveHash,
       integracaoFlowAtiva: true,
