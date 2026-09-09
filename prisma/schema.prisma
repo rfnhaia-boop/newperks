@@ -198,6 +198,9 @@ model Carimbo {
   valor     Float?
   createdAt DateTime @default(now())
   cartao    Cartao   @relation(fields: [cartaoId], references: [id])
+  // Idempotência do carimbo vindo do Flow — repetir a chamada com o mesmo
+  // appointmentId não soma um segundo selo.
+  flowAppointmentId String? @unique
 }
 
 model Campanha {
