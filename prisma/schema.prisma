@@ -39,6 +39,9 @@ model Lojista {
   linksExtra      Json?
   googleReviewUrl String?
   seloPorFeedback Boolean    @default(false)
+  // Integração com parceiros (ex: Flow, agendamento) — chamada servidor-a-servidor
+  integracaoFlowChaveHash String? @unique
+  integracaoFlowAtiva     Boolean @default(false)
   campanhas       Campanha[]
   cartoes         Cartao[]
   feedbacks       Feedback[]

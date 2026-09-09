@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef, use } from "react";
+import { useSearchParams } from "next/navigation";
 import CartaoSelos from "@/components/CartaoSelos";
 import { getTema } from "@/lib/themes";
 import BackgroundFidelix from "@/components/BackgroundFidelix";
@@ -38,10 +39,15 @@ export default function CartaoPessoalPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = use(params);
+  const searchParams = useSearchParams();
+  // Modo embutido: o Flow (agendamento) carrega isso num iframe dentro da própria
+  // aba "Fidelidade" — sem capa de boas-vindas nem fundo animado, cliente nunca
+  // sai da URL do Flow.
+  const embed = searchParams.get("embed") === "1";
   const [dados, setDados] = useState<Dados | null>(null);
   const [estado, setEstado] = useState<"carregando" | "ok" | "naoencontrado">("carregando");
   const jaVisitou = typeof window !== "undefined" && localStorage.getItem(`newperks:visited:${token}`);
-  const [mostrarCapa, setMostrarCapa] = useState(!jaVisitou);
+  const [mostrarCapa, setMostrarCapa] = useState(!jaVisitou && !embed);
   const [abaAtiva, setAbaAtiva] = useState<"cartao" | "beneficios" | "sobre">("cartao");
   const [celebrar, setCelebrar] = useState(false);
   const [resgatado, setResgatado] = useState(false);
@@ -132,9 +138,9 @@ export default function CartaoPessoalPage({
   const recompensaExpirada = Boolean(dados.recompensaValidaAte && new Date(dados.recompensaValidaAte) < new Date());
 
   return (
-    <div className="relative min-h-screen px-4 py-8 flex items-center justify-center overflow-hidden">
-      {/* Dynamic themed background with floating 3D elements */}
-      <BackgroundFidelix temaId={dados?.tema} />
+    <div className={`relative px-4 py-8 flex items-center justify-center overflow-hidden ${embed ? "min-h-fit bg-transparent" : "min-h-screen"}`}>
+      {/* Dynamic themed background with floating 3D elements — some fora do modo embutido (fica leve dentro do iframe do Flow) */}
+      {!embed && <BackgroundFidelix temaId={dados?.tema} />}
       {celebrar && <Confete />}
 
       <div className="relative w-full max-w-md z-10">

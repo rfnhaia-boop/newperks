@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LISTA_TEMAS } from "@/lib/themes";
 import CartaoSelos from "@/components/CartaoSelos";
+import IntegracaoFlowCard from "./IntegracaoFlowCard";
 import { 
   Store, MapPin, Map, Paintbrush, Award, 
   Gift, Ticket, MessageCircle, BookOpen, Clock, Check,
@@ -350,6 +351,9 @@ export default function ConfigForm({ inicial }: { inicial: Config }) {
             </div>
           </div>
         </div>
+
+        {/* Bloco 4: Integração com o Flow */}
+        <IntegracaoFlowCard />
       </div>
 
       {/* Coluna Direita: Sticky Preview & Botão Salvar */}
